@@ -1,0 +1,15 @@
+{
+    "placeholders": {
+        "departure": "02:27",
+        "train": "M 1337",
+        "info": "  - with new 777 bois - ",
+        "destination": "Ellesmere Port",
+        "next_trains": "Subsequent trains:",
+        "next_train_1_departure": "02:47",
+        "next_train_2_departure": "03:07",
+        "next_train_1_train": "M 1338",
+        "next_train_2_train": "M 1339",
+        "next_train_1_destination": "Chester",
+        "next_train_2_destination": "W. Kirby"
+    }
+}

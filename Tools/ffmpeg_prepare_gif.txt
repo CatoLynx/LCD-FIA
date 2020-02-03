@@ -1,0 +1,1 @@
+ffmpeg -i in.mp4 -vf "transpose=1,scale=192:128:force_original_aspect_ratio=decrease,pad=192:128:(ow-iw)/2:(oh-ih)/2" -sws_flags neighbor out.gif
