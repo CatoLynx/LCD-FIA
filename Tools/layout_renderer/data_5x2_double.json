@@ -1,0 +1,23 @@
+{
+    "placeholders": {
+        "departure_1": "12:20",
+        "train_1": "EC 219",
+        "via_1": "Darmstadt - Gießen",
+        "info": "  - fällt heute aus - ",
+        "destination_1": "Dreieich-Buchschlag",
+        "departure_2": "12:20",
+        "train_2": "RB 15114",
+        "via_2": "Wixhausen - Utting",
+        "destination_2": "Duisburg Hbf",
+        "next_train_1_departure": "13:37",
+        "next_train_1_delay": "+25",
+        "next_train_2_departure": "14:21",
+        "next_train_2_delay": "+30",
+        "next_train_1_train": "RE 99",
+        "next_train_2_train": "RE 98",
+        "next_train_1_destination": "von Siegen",
+        "next_train_1_info": "Gleis 23",
+        "next_train_2_destination": "Kassel Hbf",
+        "next_train_2_info": "fällt aus"
+    }
+}

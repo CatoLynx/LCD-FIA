@@ -2,7 +2,7 @@ import argparse
 import json
 import os
 
-from PIL import Image, ImageOps
+from PIL import Image, ImageOps, ImageDraw
 
 
 class LayoutRenderer:
@@ -20,6 +20,7 @@ class LayoutRenderer:
         self.font_dir = font_dir
         self.img_mode = 'L'
         self.img_bg = 255
+        self.img_fg = 0
     
     def get_char_filename(self, font, size, code):
         return os.path.join(self.font_dir, font, "size_{}".format(size), "{:x}.bmp".format(code))
@@ -33,7 +34,7 @@ class LayoutRenderer:
         img.paste(char_img, (x, y))
         return (True, x+char_width, y)
 
-    def render_text(self, width, height, pad_left, pad_top, font, size, inverted, text):
+    def render_text(self, width, height, pad_left, pad_top, font, size, align, inverted, spacing, text):
         text_img = Image.new(self.img_mode, (width, height), color=self.img_bg)
         x = pad_left
         y = pad_top
@@ -43,6 +44,18 @@ class LayoutRenderer:
             else:
                 code = ord(char)
             success, x, y = self.render_character(text_img, x, y, self.get_char_filename(font, size, code))
+            x += spacing
+        if align in ('center', 'right'):
+            bbox = ImageOps.invert(text_img).getbbox()
+            if bbox is not None:
+                cropped = text_img.crop((bbox[0], 0, bbox[2], height-1))
+                cropped_width = cropped.size[0]
+                text_img = Image.new(self.img_mode, (width, height), color=self.img_bg)
+                if align == 'center':
+                    x_offset = (width - cropped_width) // 2
+                elif align == 'right':
+                    x_offset = width - cropped_width
+                text_img.paste(cropped, (x_offset, 0))
         if inverted:
             text_img = ImageOps.invert(text_img)
         return text_img
@@ -55,31 +68,49 @@ class LayoutRenderer:
         return new_img
 
     def render_placeholder(self, img, placeholder, value):
-        x = placeholder['x']
-        y = placeholder['y']
-        width = placeholder['width']
-        height = placeholder['height']
-        pad_left = placeholder['pad_left']
-        pad_top = placeholder['pad_top']
-        p_type = placeholder['type']
-        inverted = placeholder['inverted']
-        default = placeholder['default']
+        x = placeholder.get('x')
+        y = placeholder.get('y')
+        width = placeholder.get('width')
+        height = placeholder.get('height')
+        pad_left = placeholder.get('pad_left')
+        pad_top = placeholder.get('pad_top')
+        p_type = placeholder.get('type')
+        inverted = placeholder.get('inverted')
+        default = placeholder.get('default')
         
         if p_type == 'text':
-            font = placeholder['font']
-            size = placeholder['size']
-            img.paste(self.render_text(width, height, pad_left, pad_top, font, size, inverted, value), (x, y))
+            if not value:
+                return
+            font = placeholder.get('font')
+            size = placeholder.get('size')
+            align = placeholder.get('align')
+            spacing = placeholder.get('spacing', 0)
+            img.paste(self.render_text(width, height, pad_left, pad_top, font, size, align, inverted, spacing, value), (x, y))
         elif p_type == 'image':
+            if not value:
+                return
             try:
                 value_img = Image.open(value)
             except FileNotFoundError:
                 return
             img.paste(self.render_image(width, height, pad_left, pad_top, inverted, value_img), (x, y))
+        elif p_type == 'line':
+            x2 = placeholder.get('x2', 0)
+            y2 = placeholder.get('y2', 0)
+            line_width = placeholder.get('line_width', 1)
+            draw = ImageDraw.Draw(img)
+            color = self.img_bg if inverted else self.img_fg
+            draw.line((x, y, x2, y2), fill=color, width=line_width)
+        elif p_type == 'rectangle':
+            fill = placeholder.get('fill')
+            draw = ImageDraw.Draw(img)
+            color = self.img_bg if inverted else self.img_fg
+            draw.rectangle((x, y, x+width, y+height), outline=color, fill=color if fill else None)
     
     def render(self, layout, data):
         img = Image.new(self.img_mode, (layout['width'], layout['height']), color=self.img_bg)
         for placeholder in layout['placeholders']:
-            value = data['placeholders'].get(placeholder['name'], placeholder['default'])
+            value = data['placeholders'].get(placeholder['name'], placeholder.get('default'))
             self.render_placeholder(img, placeholder, value)
         return ImageOps.invert(img)
 

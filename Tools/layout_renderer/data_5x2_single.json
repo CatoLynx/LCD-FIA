@@ -1,0 +1,19 @@
+{
+    "placeholders": {
+        "departure": "12:20",
+        "train": "EC 219",
+        "via": "Darmstadt - Gießen",
+        "info": "  - fällt heute aus - ",
+        "destination": "Dreieich-Buchschlag",
+        "next_train_1_departure": "02:47",
+        "next_train_1_delay": "",
+        "next_train_2_departure": "03:07",
+        "next_train_2_delay": "+25",
+        "next_train_1_train": "M 1338",
+        "next_train_2_train": "M 1339",
+        "next_train_1_destination": "Chester",
+        "next_train_1_info": "Gleis 10",
+        "next_train_2_destination": "W. Kirby",
+        "next_train_2_info": ""
+    }
+}
