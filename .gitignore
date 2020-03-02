@@ -25,6 +25,7 @@ rescue-backup/
 
 # Production files
 *.zip
+**/Gerber/
 
 # Python stuff
 __pycache__/
