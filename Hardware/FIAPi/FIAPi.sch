@@ -1,0 +1,382 @@
+EESchema Schematic File Version 4
+EELAYER 26 0
+EELAYER END
+$Descr A4 11693 8268
+encoding utf-8
+Sheet 1 1
+Title "FIA Raspberry Pi HAT"
+Date "2020-03-05"
+Rev "1.0"
+Comp "xatLabs"
+Comment1 "Julian Metzler"
+Comment2 ""
+Comment3 ""
+Comment4 ""
+$EndDescr
+$Comp
+L conn:CONN_02X20 J1
+U 1 1 5E616966
+P 4200 3850
+F 0 "J1" H 4200 5015 50  0000 C CNN
+F 1 "Raspberry Pi" H 4200 4924 50  0000 C CNN
+F 2 "Socket_Strips:Socket_Strip_Straight_2x20" H 4200 2900 50  0001 C CNN
+F 3 "" H 4200 2900 50  0000 C CNN
+	1    4200 3850
+	1    0    0    -1  
+$EndComp
+$Comp
+L conn:CONN_02X10 J2
+U 1 1 5E616A1A
+P 8100 4050
+F 0 "J2" H 8100 4715 50  0000 C CNN
+F 1 "Control" H 8100 4624 50  0000 C CNN
+F 2 "Connectors:IDC_Header_Straight_20pins" H 8100 2850 50  0001 C CNN
+F 3 "" H 8100 2850 50  0000 C CNN
+	1    8100 4050
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	8350 3600 8450 3600
+Wire Wire Line
+	8450 3600 8450 3700
+Wire Wire Line
+	8350 3700 8450 3700
+Connection ~ 8450 3700
+Wire Wire Line
+	8450 3700 8450 3800
+Wire Wire Line
+	8350 3800 8450 3800
+Connection ~ 8450 3800
+Wire Wire Line
+	8450 3800 8450 3900
+Wire Wire Line
+	8350 3900 8450 3900
+Connection ~ 8450 3900
+Wire Wire Line
+	8450 3900 8450 4000
+Wire Wire Line
+	8350 4000 8450 4000
+Connection ~ 8450 4000
+Wire Wire Line
+	8450 4000 8450 4100
+Wire Wire Line
+	8350 4100 8450 4100
+Connection ~ 8450 4100
+Wire Wire Line
+	8450 4100 8450 4200
+Wire Wire Line
+	8350 4200 8450 4200
+Connection ~ 8450 4200
+Wire Wire Line
+	8450 4200 8450 4300
+Wire Wire Line
+	8350 4300 8450 4300
+Connection ~ 8450 4300
+Wire Wire Line
+	8450 4300 8450 4400
+Wire Wire Line
+	8350 4400 8450 4400
+Connection ~ 8450 4400
+Wire Wire Line
+	8450 4400 8450 4500
+Wire Wire Line
+	8350 4500 8450 4500
+Connection ~ 8450 4500
+Wire Wire Line
+	8450 4500 8450 4600
+$Comp
+L power:GND #PWR07
+U 1 1 5E616DF0
+P 8450 4600
+F 0 "#PWR07" H 8450 4350 50  0001 C CNN
+F 1 "GND" H 8455 4427 50  0000 C CNN
+F 2 "" H 8450 4600 50  0001 C CNN
+F 3 "" H 8450 4600 50  0001 C CNN
+	1    8450 4600
+	1    0    0    -1  
+$EndComp
+$Comp
+L power:+5V #PWR03
+U 1 1 5E617343
+P 4550 2800
+F 0 "#PWR03" H 4550 2650 50  0001 C CNN
+F 1 "+5V" H 4565 2973 50  0000 C CNN
+F 2 "" H 4550 2800 50  0001 C CNN
+F 3 "" H 4550 2800 50  0001 C CNN
+	1    4550 2800
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	4550 2800 4550 2900
+Wire Wire Line
+	4450 3000 4550 3000
+Wire Wire Line
+	4550 3000 4550 2900
+Connection ~ 4550 2900
+Wire Wire Line
+	4550 2900 4450 2900
+Wire Wire Line
+	4450 3100 4550 3100
+Wire Wire Line
+	4550 3100 4550 3500
+Wire Wire Line
+	4450 3500 4550 3500
+Connection ~ 4550 3500
+Wire Wire Line
+	4550 3500 4550 3800
+Wire Wire Line
+	4450 3800 4550 3800
+Connection ~ 4550 3800
+Wire Wire Line
+	4550 3800 4550 4300
+Wire Wire Line
+	4450 4300 4550 4300
+Connection ~ 4550 4300
+Wire Wire Line
+	4550 4300 4550 4500
+Wire Wire Line
+	4450 4500 4550 4500
+Connection ~ 4550 4500
+Wire Wire Line
+	4550 4500 4550 4900
+Wire Wire Line
+	3950 3300 3850 3300
+Wire Wire Line
+	3850 3300 3850 4100
+Wire Wire Line
+	3950 4100 3850 4100
+Connection ~ 3850 4100
+Wire Wire Line
+	3850 4100 3850 4800
+Wire Wire Line
+	3950 4800 3850 4800
+Connection ~ 3850 4800
+Wire Wire Line
+	3850 4800 3850 4900
+$Comp
+L power:GND #PWR04
+U 1 1 5E61A9D1
+P 4550 4900
+F 0 "#PWR04" H 4550 4650 50  0001 C CNN
+F 1 "GND" H 4555 4727 50  0000 C CNN
+F 2 "" H 4550 4900 50  0001 C CNN
+F 3 "" H 4550 4900 50  0001 C CNN
+	1    4550 4900
+	1    0    0    -1  
+$EndComp
+$Comp
+L power:GND #PWR02
+U 1 1 5E61AA16
+P 3850 4900
+F 0 "#PWR02" H 3850 4650 50  0001 C CNN
+F 1 "GND" H 3855 4727 50  0000 C CNN
+F 2 "" H 3850 4900 50  0001 C CNN
+F 3 "" H 3850 4900 50  0001 C CNN
+	1    3850 4900
+	1    0    0    -1  
+$EndComp
+Text GLabel 3750 4400 0    50   Output ~ 0
+BITMAP_MOSI
+Text GLabel 3750 4300 0    50   Input ~ 0
+BITMAP_MISO
+Text GLabel 4650 4100 2    50   Output ~ 0
+BITMAP_SCK
+Text GLabel 3750 3200 0    50   Output ~ 0
+BITMAP_CS
+Wire Wire Line
+	3750 4300 3950 4300
+Wire Wire Line
+	3750 4400 3950 4400
+Wire Wire Line
+	4450 4100 4650 4100
+Text GLabel 4650 4400 2    50   Output ~ 0
+CTRL_RX
+Text GLabel 3750 4500 0    50   Input ~ 0
+CTRL_TX
+Wire Wire Line
+	3750 4500 3950 4500
+Wire Wire Line
+	4450 4400 4650 4400
+Wire Wire Line
+	3750 3200 3950 3200
+Text GLabel 4650 3600 2    50   Input ~ 0
+CTRL_AUX1_OUT
+Text GLabel 4650 3700 2    50   Input ~ 0
+CTRL_AUX2_OUT
+Text GLabel 3750 3500 0    50   Output ~ 0
+CTRL_AUX2_IN
+Text GLabel 3750 3400 0    50   Output ~ 0
+CTRL_AUX1_IN
+Wire Wire Line
+	4450 3600 4650 3600
+Wire Wire Line
+	4650 3700 4450 3700
+Wire Wire Line
+	3750 3400 3950 3400
+Wire Wire Line
+	3750 3500 3950 3500
+NoConn ~ 4450 3200
+NoConn ~ 4450 3300
+NoConn ~ 4450 3400
+NoConn ~ 4450 3900
+NoConn ~ 4450 4000
+NoConn ~ 4450 4200
+NoConn ~ 4450 4600
+NoConn ~ 4450 4700
+NoConn ~ 4450 4800
+NoConn ~ 3950 4700
+NoConn ~ 3950 4600
+NoConn ~ 3950 4200
+NoConn ~ 3950 4000
+NoConn ~ 3950 3900
+NoConn ~ 3950 3800
+NoConn ~ 3950 3600
+NoConn ~ 3950 3100
+NoConn ~ 3950 3000
+Text GLabel 7750 3700 0    50   Output ~ 0
+CTRL_AUX1_OUT
+Text GLabel 7750 3600 0    50   Output ~ 0
+CTRL_AUX2_OUT
+Text GLabel 7750 3800 0    50   Input ~ 0
+CTRL_AUX2_IN
+Text GLabel 7750 3900 0    50   Input ~ 0
+CTRL_AUX1_IN
+Text GLabel 7750 4000 0    50   Input ~ 0
+CTRL_RX
+Text GLabel 7750 4100 0    50   Output ~ 0
+CTRL_TX
+Text GLabel 7750 4200 0    50   Input ~ 0
+BITMAP_CS
+Text GLabel 7750 4300 0    50   Output ~ 0
+BITMAP_MISO
+Text GLabel 7750 4500 0    50   Input ~ 0
+BITMAP_MOSI
+Text GLabel 7750 4400 0    50   Input ~ 0
+BITMAP_SCK
+Wire Wire Line
+	7750 3600 7850 3600
+Wire Wire Line
+	7850 3700 7750 3700
+Wire Wire Line
+	7750 3800 7850 3800
+Wire Wire Line
+	7850 3900 7750 3900
+Wire Wire Line
+	7750 4000 7850 4000
+Wire Wire Line
+	7850 4100 7750 4100
+Wire Wire Line
+	7750 4200 7850 4200
+Wire Wire Line
+	7850 4300 7750 4300
+Wire Wire Line
+	7750 4400 7850 4400
+Wire Wire Line
+	7850 4500 7750 4500
+$Comp
+L power:+5V #PWR05
+U 1 1 5E643CD9
+P 2450 1650
+F 0 "#PWR05" H 2450 1500 50  0001 C CNN
+F 1 "+5V" H 2465 1823 50  0000 C CNN
+F 2 "" H 2450 1650 50  0001 C CNN
+F 3 "" H 2450 1650 50  0001 C CNN
+	1    2450 1650
+	1    0    0    -1  
+$EndComp
+$Comp
+L power:GND #PWR06
+U 1 1 5E643D06
+P 2450 2150
+F 0 "#PWR06" H 2450 1900 50  0001 C CNN
+F 1 "GND" H 2455 1977 50  0000 C CNN
+F 2 "" H 2450 2150 50  0001 C CNN
+F 3 "" H 2450 2150 50  0001 C CNN
+	1    2450 2150
+	1    0    0    -1  
+$EndComp
+$Comp
+L device:CP C1
+U 1 1 5E643D3A
+P 2450 1900
+F 0 "C1" H 2568 1946 50  0000 L CNN
+F 1 "100µ/35V" H 2568 1855 50  0000 L CNN
+F 2 "Capacitors_SMD:CP_Elec_6.3x7.7" H 2488 1750 50  0001 C CNN
+F 3 "~" H 2450 1900 50  0001 C CNN
+	1    2450 1900
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	2450 1650 2450 1700
+Wire Wire Line
+	2450 2050 2450 2100
+$Comp
+L device:C C2
+U 1 1 5E646974
+P 3100 1900
+F 0 "C2" H 3215 1946 50  0000 L CNN
+F 1 "10µ" H 3215 1855 50  0000 L CNN
+F 2 "Capacitors_SMD:C_0805" H 3138 1750 50  0001 C CNN
+F 3 "~" H 3100 1900 50  0001 C CNN
+	1    3100 1900
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	3100 1750 3100 1700
+Wire Wire Line
+	3100 1700 2450 1700
+Connection ~ 2450 1700
+Wire Wire Line
+	2450 1700 2450 1750
+Wire Wire Line
+	2450 2100 3100 2100
+Wire Wire Line
+	3100 2100 3100 2050
+Connection ~ 2450 2100
+Wire Wire Line
+	2450 2100 2450 2150
+$Comp
+L conn:CONN_01X03 J3
+U 1 1 5E64D329
+P 1300 1900
+F 0 "J3" H 1219 1575 50  0000 C CNN
+F 1 "Power" H 1219 1666 50  0000 C CNN
+F 2 "custom:Connector_DEGSON_DG246-3.81_3pin" H 1300 1900 50  0001 C CNN
+F 3 "" H 1300 1900 50  0000 C CNN
+	1    1300 1900
+	-1   0    0    1   
+$EndComp
+$Comp
+L power:+5V #PWR08
+U 1 1 5E64D4C5
+P 1600 1700
+F 0 "#PWR08" H 1600 1550 50  0001 C CNN
+F 1 "+5V" H 1615 1873 50  0000 C CNN
+F 2 "" H 1600 1700 50  0001 C CNN
+F 3 "" H 1600 1700 50  0001 C CNN
+	1    1600 1700
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	1600 1700 1600 1800
+Wire Wire Line
+	1600 1800 1500 1800
+$Comp
+L power:GND #PWR09
+U 1 1 5E64EFD5
+P 1600 2100
+F 0 "#PWR09" H 1600 1850 50  0001 C CNN
+F 1 "GND" H 1605 1927 50  0000 C CNN
+F 2 "" H 1600 2100 50  0001 C CNN
+F 3 "" H 1600 2100 50  0001 C CNN
+	1    1600 2100
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	1600 2100 1600 2000
+Wire Wire Line
+	1600 2000 1500 2000
+NoConn ~ 1500 1900
+NoConn ~ 3950 2900
+NoConn ~ 3950 3700
+$EndSCHEMATC
