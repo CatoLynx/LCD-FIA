@@ -6,7 +6,7 @@ $Descr A3 16535 11693
 encoding utf-8
 Sheet 1 1
 Title "funkwerk KJ LCD FIA Controller"
-Date "2020-03-02"
+Date "2020-03-05"
 Rev "1.0"
 Comp "xatLabs"
 Comment1 "Julian Metzler"
@@ -3935,11 +3935,11 @@ F 3 "" H 9950 8250 50  0000 C CNN
 $EndComp
 Text GLabel 9600 9400 0    50   Output ~ 0
 CTRL_RX
-Text GLabel 9600 9500 0    50   Output ~ 0
+Text GLabel 9600 9500 0    50   Input ~ 0
 CTRL_TX
 Text GLabel 9600 9600 0    50   Output ~ 0
 BITMAP_CS
-Text GLabel 9600 9700 0    50   Output ~ 0
+Text GLabel 9600 9700 0    50   Input ~ 0
 BITMAP_MISO
 Text GLabel 9600 9900 0    50   Output ~ 0
 BITMAP_MOSI
