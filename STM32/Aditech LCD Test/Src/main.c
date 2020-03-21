@@ -116,10 +116,12 @@ int main(void) {
     MX_TIM2_Init();
     MX_USB_DEVICE_Init();
     MX_TIM3_Init();
+    MX_SPI2_Init();
     /* USER CODE BEGIN 2 */
     HAL_TIM_Base_Start(&DELAY_US_TIMER);
     HAL_TIM_Base_Start(&LCD_FRAME_TIMER);
     HAL_TIM_PWM_Start(&LCD_FRAME_TIMER, LCD_FRAME_TIMER_CHANNEL);
+    memset(lcdData, 0x37, LCD_BUF_SIZE);
     /* USER CODE END 2 */
 
     /* Infinite loop */
@@ -129,7 +131,7 @@ int main(void) {
 
         /* USER CODE BEGIN 3 */
         if (!isTransmitActive()) {
-            convertBitmap(lcdData, bitmapBuffer, NUM_HALF_PANELS, currentRAM);
+            //convertBitmap(lcdData, bitmapBuffer, NUM_HALF_PANELS, currentRAM);
             transmitBitmap(lcdData, NUM_HALF_PANELS);
             if (currentRAM == RAM1) {
                 currentRAM = RAM2;
@@ -137,6 +139,7 @@ int main(void) {
                 currentRAM = RAM1;
             }
         }
+        HAL_Delay(1000);
     }
     /* USER CODE END 3 */
 }

@@ -1,4 +1,5 @@
-#define LCD_SPI hspi1
+#define LCD_SPI1 hspi1
+#define LCD_SPI2 hspi2
 #define LCD_FRAME_TIMER htim2
 #define LCD_FRAME_TIMER_CHANNEL TIM_CHANNEL_1
 #define DELAY_US_TIMER htim3

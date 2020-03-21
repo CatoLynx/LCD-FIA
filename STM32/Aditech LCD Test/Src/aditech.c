@@ -115,9 +115,12 @@ void transmitBackplane(uint8_t* data, uint8_t backplane, uint8_t numHalfPanels) 
     // backplane: The backplane to transmit data for (COM0 ... COM3)
     // numHalfPanels: Number of half-panel blocks to be transmitted
 
-    uint8_t bplIndex = getBackplaneIndex(backplane);
-    uint16_t dataOffset = bplIndex * BACKPLANE_NUM_LCD_BYTES * numHalfPanels;
-    HAL_SPI_Transmit_DMA(&LCD_SPI, data + dataOffset, BACKPLANE_NUM_LCD_BYTES * numHalfPanels);
+    uint8_t bplIndex1 = getBackplaneIndex(backplane);
+    uint16_t dataOffset1 = bplIndex1 * BACKPLANE_NUM_LCD_BYTES * numHalfPanels;
+    uint8_t bplIndex2 = NUM_BACKPLANES - (bplIndex1 + 1);
+    uint16_t dataOffset2 = bplIndex2 * BACKPLANE_NUM_LCD_BYTES * numHalfPanels;
+    HAL_SPI_Transmit_DMA(&LCD_SPI1, data + dataOffset1, BACKPLANE_NUM_LCD_BYTES * numHalfPanels);
+    HAL_SPI_Transmit_DMA(&LCD_SPI2, data + dataOffset2, BACKPLANE_NUM_LCD_BYTES * numHalfPanels);
 }
 
 uint8_t isTransmitActive() {
@@ -151,5 +154,7 @@ void LCDTransmitCompleteCallback(DMA_HandleTypeDef* hdma) {
 }
 
 void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef* hspi) {
-    LCDTransmitCompleteCallback(NULL);
+    if (hspi == &LCD_SPI2) {
+        LCDTransmitCompleteCallback(NULL);
+    }
 }
