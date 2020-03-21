@@ -43,3 +43,12 @@ void avgInterleaved(uint32_t* in, uint32_t* out, uint8_t numChannels, uint32_t c
         out[c] = avg;
     }
 }
+
+void setGPIOMode(GPIO_TypeDef* port, uint16_t pin, uint16_t mode, uint16_t pull, uint16_t speed) {
+    GPIO_InitTypeDef GPIO_InitStruct = {0};
+    GPIO_InitStruct.Pin = pin;
+    GPIO_InitStruct.Mode = mode;
+    GPIO_InitStruct.Pull = pull;
+    GPIO_InitStruct.Speed = speed;
+    HAL_GPIO_Init(port, &GPIO_InitStruct);
+}

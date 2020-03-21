@@ -144,24 +144,24 @@ uint8_t LCD_TransmitBitmap(uint8_t* data, uint8_t numHalfPanels, FIA_LCD_Bus_t r
 
 void LCD_Latch(FIA_LCD_Bus_t row) {
     if (row == BUS_1) {
-        HAL_GPIO_WritePin(LCD_LATCH_ROW_1, 1);
+        HAL_GPIO_WritePin(LCD1_LATCH_GPIO_Port, LCD1_LATCH_Pin, 1);
         delay_us(1);
-        HAL_GPIO_WritePin(LCD_LATCH_ROW_1, 0);
+        HAL_GPIO_WritePin(LCD1_LATCH_GPIO_Port, LCD1_LATCH_Pin, 0);
     }
     if (row == BUS_2) {
-        HAL_GPIO_WritePin(LCD_LATCH_ROW_2, 1);
+        HAL_GPIO_WritePin(LCD2_LATCH_GPIO_Port, LCD2_LATCH_Pin, 1);
         delay_us(1);
-        HAL_GPIO_WritePin(LCD_LATCH_ROW_2, 0);
+        HAL_GPIO_WritePin(LCD2_LATCH_GPIO_Port, LCD2_LATCH_Pin, 0);
     }
     if (row == BUS_3) {
-        HAL_GPIO_WritePin(LCD_LATCH_ROW_3, 1);
+        HAL_GPIO_WritePin(LCD3_LATCH_GPIO_Port, LCD3_LATCH_Pin, 1);
         delay_us(1);
-        HAL_GPIO_WritePin(LCD_LATCH_ROW_3, 0);
+        HAL_GPIO_WritePin(LCD3_LATCH_GPIO_Port, LCD3_LATCH_Pin, 0);
     }
     if (row == BUS_4) {
-        HAL_GPIO_WritePin(LCD_LATCH_ROW_4, 1);
+        HAL_GPIO_WritePin(LCD4_LATCH_GPIO_Port, LCD4_LATCH_Pin, 1);
         delay_us(1);
-        HAL_GPIO_WritePin(LCD_LATCH_ROW_4, 0);
+        HAL_GPIO_WritePin(LCD4_LATCH_GPIO_Port, LCD4_LATCH_Pin, 0);
     }
 }
 

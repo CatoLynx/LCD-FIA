@@ -21,14 +21,11 @@
 #define LCD_SPI_ROW_3 hspi3
 #define LCD_SPI_ROW_4 hspi4
 #define BITMAP_DATA_SPI hspi5
-#define LCD_LATCH_ROW_1 GPIOC, LCD1_LATCH_Pin
-#define LCD_LATCH_ROW_2 GPIOE, LCD2_LATCH_Pin
-#define LCD_LATCH_ROW_3 GPIOB, LCD3_LATCH_Pin
-#define LCD_LATCH_ROW_4 GPIOE, LCD4_LATCH_Pin
 #define LCD_FRAME_TIMER htim1
 #define LCD_FRAME_TIMER_CHANNEL TIM_CHANNEL_1
 #define DELAY_US_TIMER htim2
 #define ADC_UPDATE_TIMER htim3
+#define DS18B20_UPDATE_TIMER htim4
 #define LCD_CONTRAST_DAC hdac
 #define ENV_BRIGHTNESS_ADC hadc1
 #define ADC_NUM_CHANNELS 2
@@ -53,6 +50,7 @@
 // Type definitions
 typedef enum FIA_Side { SIDE_NONE = 0, SIDE_A = 1, SIDE_B = 2, SIDE_BOTH = 3 } FIA_Side_t;
 typedef enum FIA_LCD_Bus { BUS_1 = 0, BUS_2 = 1, BUS_3 = 2, BUS_4 = 3 } FIA_LCD_Bus_t;
+typedef enum FIA_Temp_Sensor { EXT_1 = 0, EXT_2 = 1, BOARD = 2, MCU = 3 } FIA_Temp_Sensor_t;
 
 // Variables for brightness sensors
 uint32_t adcRingBufferIndex;
@@ -65,17 +63,23 @@ uint8_t updateBacklightBrightnessFlag;
 uint8_t firstADCReadFlag;
 uint8_t firstADCAverageFlag;
 
+// Variables for temperature sensors
+double extTempSensorValues[2];
+
 // Function prototypes
-void FIA_Init();
-void FIA_InitI2CDACs();
+void FIA_Init(void);
+void FIA_InitI2CDACs(void);
 void FIA_SetBacklightBrightness(FIA_Side_t side, uint16_t value);
 void FIA_SetLCDContrast(FIA_Side_t side, uint16_t value);
 void FIA_SetStatusLED(uint8_t number, uint8_t value);
 uint16_t FIA_GetEnvBrightness(FIA_Side_t side);
-void FIA_UpdateEnvBrightness();
+void FIA_UpdateEnvBrightness(void);
 void FIA_SetBacklight(uint8_t status);
 void FIA_SetHeaters(uint8_t level);
 void FIA_SetCirculationFans(uint8_t level);
 void FIA_SetHeatExchangerFan(uint8_t status);
 void FIA_SetBacklightBallastFans(uint8_t status);
-FIA_Side_t FIA_GetDoorStatus();
+FIA_Side_t FIA_GetDoorStatus(void);
+void FIA_StartExtTempSensorConv(void);
+void FIA_ReadExtTempSensors(void);
+double FIA_GetTemperature(FIA_Temp_Sensor_t sensor);

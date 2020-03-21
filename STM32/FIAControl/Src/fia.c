@@ -1,16 +1,19 @@
 #include "fia.h"
+#include "ds18b20.h"
 #include "util.h"
 #include "stm32f4xx_hal.h"
 
 uint32_t baseBrightness[2] = {2048, 2048};
 uint8_t firstADCReadFlag = 1;
 
-void FIA_Init() {
+void FIA_Init(void) {
     HAL_TIM_Base_Start(&DELAY_US_TIMER);
     HAL_TIM_Base_Start(&LCD_FRAME_TIMER);
+    HAL_TIM_PWM_Start(&LCD_FRAME_TIMER, TIM_CHANNEL_1);
     HAL_TIM_Base_Start(&ADC_UPDATE_TIMER);
     HAL_TIM_Base_Start_IT(&ADC_UPDATE_TIMER);
-    HAL_TIM_PWM_Start(&LCD_FRAME_TIMER, TIM_CHANNEL_1);
+    HAL_TIM_Base_Start(&DS18B20_UPDATE_TIMER);
+    HAL_TIM_Base_Start_IT(&DS18B20_UPDATE_TIMER);
     HAL_DAC_Start(&LCD_CONTRAST_DAC, DAC1_CHANNEL_1);
     HAL_DAC_Start(&LCD_CONTRAST_DAC, DAC1_CHANNEL_2);
     HAL_ADC_Start_DMA(&ENV_BRIGHTNESS_ADC, adcValues, ADC_NUM_CHANNELS);
@@ -27,7 +30,7 @@ void FIA_Init() {
     FIA_SetStatusLED(2, 0);
 }
 
-void FIA_InitI2CDACs() {
+void FIA_InitI2CDACs(void) {
     uint8_t buf[3];
     buf[0] = 0b01000000; // Cmd: Write volatile mem, conf: ref=VDD, no power down, gain=1
     buf[1] = 0x00;
@@ -54,6 +57,9 @@ void FIA_SetBacklightBrightness(FIA_Side_t side, uint16_t value) {
             HAL_I2C_Master_Transmit(&PERIPHERALS_I2C, I2C_ADDR_DAC_BRIGHTNESS_B, buf, 2, I2C_TIMEOUT);
             break;
         }
+        case SIDE_NONE: {
+            break;
+        }
     }
 }
 
@@ -70,6 +76,9 @@ void FIA_SetLCDContrast(FIA_Side_t side, uint16_t value) {
         case SIDE_BOTH: {
             HAL_DAC_SetValue(&hdac, DAC_LCD_CONTRAST_SIDE_A, DAC_ALIGN_12B_R, value);
             HAL_DAC_SetValue(&hdac, DAC_LCD_CONTRAST_SIDE_B, DAC_ALIGN_12B_R, value);
+            break;
+        }
+        case SIDE_NONE: {
             break;
         }
     }
@@ -111,7 +120,7 @@ void FIA_UpdateEnvBrightness() {
     }
     avgInterleaved(adcRingBuffer, adcAverages, ADC_NUM_CHANNELS, BRIGHTNESS_AVG_COUNT);
     for(uint8_t c = 0; c < ADC_NUM_CHANNELS; c++) {
-	    envBrightness[c] = (uint32_t)limitRange(mapRange(adcAverages[c], 370, 800, 0, 4095) - baseBrightness[c] + 2048, 0, 4095);
+	    envBrightness[c] = (uint32_t)limitRange(mapRange(adcAverages[c], 370, 800, 0, 4095) + baseBrightness[c] - 2048, 0, 4095);
     }
     updateBacklightBrightnessFlag = 1;
 }
@@ -159,7 +168,7 @@ void FIA_SetBacklightBallastFans(uint8_t status) {
     HAL_GPIO_WritePin(FAN_4_GPIO_Port, FAN_4_Pin, !!status);
 }
 
-FIA_Side_t FIA_GetDoorStatus() {
+FIA_Side_t FIA_GetDoorStatus(void) {
     // Get door open status: OPEN (1) or CLOSED (0)
     uint8_t doorA = !HAL_GPIO_ReadPin(DOOR_A_GPIO_Port, DOOR_A_Pin);
     uint8_t doorB = !HAL_GPIO_ReadPin(DOOR_B_GPIO_Port, DOOR_B_Pin);
@@ -167,4 +176,37 @@ FIA_Side_t FIA_GetDoorStatus() {
     if(doorA) return SIDE_A;
     if(doorB) return SIDE_B;
     return SIDE_NONE;
+}
+
+void FIA_StartExtTempSensorConv(void) {
+    // Initiate a conversion in the external temperature sensors
+    DS18B20_ConvertTemperature(TEMP_1_ONEWIRE_GPIO_Port, TEMP_1_ONEWIRE_Pin);
+    DS18B20_ConvertTemperature(TEMP_2_ONEWIRE_GPIO_Port, TEMP_2_ONEWIRE_Pin);
+}
+
+void FIA_ReadExtTempSensors(void) {
+    // Initiate a read from the external temperature sensors
+    extTempSensorValues[0] = DS18B20_ReadTemperature(TEMP_1_ONEWIRE_GPIO_Port, TEMP_1_ONEWIRE_Pin);
+    extTempSensorValues[1] = DS18B20_ReadTemperature(TEMP_2_ONEWIRE_GPIO_Port, TEMP_2_ONEWIRE_Pin);
+}
+
+double FIA_GetTemperature(FIA_Temp_Sensor_t sensor) {
+    // Get the value for the specified temperature sensor
+    switch(sensor) {
+        case EXT_1: {
+            return extTempSensorValues[0];
+        }
+        case EXT_2: {
+            return extTempSensorValues[1];
+        }
+        case BOARD: {
+            // TODO
+            return 0;
+        }
+        case MCU: {
+            // TODO
+            return 0;
+        }
+    }
+    return 0;
 }

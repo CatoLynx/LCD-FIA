@@ -34,6 +34,7 @@
 #include <string.h>
 
 #include "aditech.h"
+#include "ds18b20.h"
 #include "fia.h"
 /* USER CODE END Includes */
 
@@ -116,6 +117,7 @@ int main(void)
   MX_UART10_Init();
   MX_TIM2_Init();
   MX_TIM3_Init();
+  MX_TIM4_Init();
   /* USER CODE BEGIN 2 */
     FIA_Init();
 
@@ -146,12 +148,12 @@ int main(void)
             FIA_SetStatusLED(2, 1);
         }
 
-        if(updateBacklightBrightnessFlag) {
-          FIA_Side_t doorStatus = FIA_GetDoorStatus();
-          // Auto-adjust brightness or set to minimum if door is open
-          FIA_SetBacklightBrightness(SIDE_A, (doorStatus & SIDE_A) ? 0 : FIA_GetEnvBrightness(SIDE_A));
-          FIA_SetBacklightBrightness(SIDE_B, (doorStatus & SIDE_B) ? 0 : FIA_GetEnvBrightness(SIDE_B));
-          updateBacklightBrightnessFlag = 0;
+        if (updateBacklightBrightnessFlag) {
+            FIA_Side_t doorStatus = FIA_GetDoorStatus();
+            // Auto-adjust brightness or set to minimum if door is open
+            FIA_SetBacklightBrightness(SIDE_A, (doorStatus & SIDE_A) ? 0 : FIA_GetEnvBrightness(SIDE_A));
+            FIA_SetBacklightBrightness(SIDE_B, (doorStatus & SIDE_B) ? 0 : FIA_GetEnvBrightness(SIDE_B));
+            updateBacklightBrightnessFlag = 0;
         }
 
         if (!LCD_IsTransmitActive(BUS_1)) {
