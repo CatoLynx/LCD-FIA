@@ -1,0 +1,45 @@
+{
+  "build": {
+    "cpu": "cortex-m4",
+    "extra_flags": "-DSTM32F413xx",
+    "f_cpu": "100000000L",
+    "mcu": "stm32f413vgt6"
+  },
+  "connectivity": [
+    "can"
+  ],
+  "debug": {
+    "default_tools": [
+      "stlink"
+    ],
+    "jlink_device": "STM32F413VG",
+    "onboard_tools": [
+      "stlink"
+    ],
+    "openocd_extra_args": [
+            "-c",
+            "reset_config none"
+          ],
+    "openocd_target": "stm32f4x",
+    "svd_path": "STM32F41x.svd"
+  },
+  "frameworks": [
+    "stm32cube",
+    "mbed",
+    "zephyr"
+  ],
+  "name": "STM32F413VG (320k RAM, 1024k Flash)",
+  "upload": {
+    "maximum_ram_size": 327680,
+    "maximum_size": 1048576,
+    "protocol": "stlink",
+    "protocols": [
+      "jlink",
+      "stlink",
+      "blackmagic",
+      "mbed"
+    ]
+  },
+  "url": "",
+  "vendor": "ST"
+}

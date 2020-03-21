@@ -63,10 +63,6 @@ void Error_Handler(void);
 #define CTRL_RX_GPIO_Port GPIOE
 #define CTRL_TX_Pin GPIO_PIN_3
 #define CTRL_TX_GPIO_Port GPIOE
-#define BITMAP_NSS_Pin GPIO_PIN_4
-#define BITMAP_NSS_GPIO_Port GPIOE
-#define BITMAP_MISO_Pin GPIO_PIN_5
-#define BITMAP_MISO_GPIO_Port GPIOE
 #define LCD4_MOSI_Pin GPIO_PIN_6
 #define LCD4_MOSI_GPIO_Port GPIOE
 #define LCD2_MOSI_Pin GPIO_PIN_3
