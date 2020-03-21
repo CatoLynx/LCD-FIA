@@ -15,8 +15,8 @@ void FIA_Init() {
     HAL_DAC_Start(&LCD_CONTRAST_DAC, DAC1_CHANNEL_2);
     HAL_ADC_Start_DMA(&ENV_BRIGHTNESS_ADC, adcValues, ADC_NUM_CHANNELS);
     FIA_InitI2CDACs();
-    FIA_setStatusLED(1, 0);
-    FIA_setStatusLED(2, 0);
+    FIA_SetStatusLED(1, 0);
+    FIA_SetStatusLED(2, 0);
 }
 
 void FIA_InitI2CDACs() {
@@ -28,7 +28,7 @@ void FIA_InitI2CDACs() {
     HAL_I2C_Master_Transmit(&PERIPHERALS_I2C, I2C_ADDR_DAC_BRIGHTNESS_B, buf, 3, I2C_TIMEOUT);
 }
 
-void FIA_setBacklightBrightness(FIA_Side_t side, uint16_t value) {
+void FIA_SetBacklightBrightness(FIA_Side_t side, uint16_t value) {
     uint8_t buf[2];
     buf[0] = (value >> 8) & 0x0F;
     buf[1] = value & 0xFF;
@@ -36,11 +36,11 @@ void FIA_setBacklightBrightness(FIA_Side_t side, uint16_t value) {
                             buf, 2, I2C_TIMEOUT);
 }
 
-void FIA_setLCDContrast(FIA_Side_t side, uint16_t value) {
+void FIA_SetLCDContrast(FIA_Side_t side, uint16_t value) {
     HAL_DAC_SetValue(&hdac, side == SIDE_A ? DAC_LCD_CONTRAST_SIDE_A : DAC_LCD_CONTRAST_SIDE_B, DAC_ALIGN_12B_R, value);
 }
 
-void FIA_setStatusLED(uint8_t number, uint8_t value) {
+void FIA_SetStatusLED(uint8_t number, uint8_t value) {
     if (number == 1) {
         HAL_GPIO_WritePin(STATUS_LED_1_GPIO_Port, STATUS_LED_1_Pin, !value);
     } else if (number == 2) {
@@ -55,27 +55,70 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) {
     }
 }
 
-uint16_t FIA_getEnvBrightness(FIA_Side_t side) {
+uint16_t FIA_GetEnvBrightness(FIA_Side_t side) {
     return envBrightness[side];
 }
 
-void FIA_updateEnvBrightness() {
+void FIA_UpdateEnvBrightness() {
     // Sensor range: 0.3 ... 0.65V (ADC values 370 ... 800)
     for(uint8_t c = 0; c < ADC_NUM_CHANNELS; c++) {
         adcRingBuffer[adcRingBufferIndex++] = adcValues[c];
     }
-    if(adcRingBufferIndex >= (ADC_NUM_CHANNELS * ADC_AVG_COUNT)) adcRingBufferIndex = 0;
+    if(adcRingBufferIndex >= (ADC_NUM_CHANNELS * BRIGHTNESS_AVG_COUNT)) adcRingBufferIndex = 0;
     if(firstADCAverageFlag) {
         for(uint8_t c = 0; c < ADC_NUM_CHANNELS; c++) {
-            for(uint32_t i = c; i < ADC_AVG_COUNT * ADC_NUM_CHANNELS; i += ADC_NUM_CHANNELS) {
+            for(uint32_t i = c; i < BRIGHTNESS_AVG_COUNT * ADC_NUM_CHANNELS; i += ADC_NUM_CHANNELS) {
                 adcRingBuffer[i] = adcValues[c];
             }
         }
         firstADCAverageFlag = 0;
     }
-    averageADCValues(adcRingBuffer, adcAverages, ADC_NUM_CHANNELS, ADC_AVG_COUNT);
+    avgInterleaved(adcRingBuffer, adcAverages, ADC_NUM_CHANNELS, BRIGHTNESS_AVG_COUNT);
     for(uint8_t c = 0; c < ADC_NUM_CHANNELS; c++) {
 	    envBrightness[c] = (uint32_t)limitRange(mapRange(adcAverages[c], 370, 800, 0, 4095) - baseBrightness[c] + 2048, 0, 4095);
     }
     updateBacklightBrightnessFlag = 1;
+}
+
+void FIA_SetBacklight(uint8_t status) {
+    // Set backlight ON (1) or OFF (0)
+    HAL_GPIO_WritePin(LIGHT_GPIO_Port, LIGHT_Pin, !!status);
+}
+
+void FIA_SetHeaters(uint8_t level) {
+    // Set heaters OFF (0), ONE ON (1) or BOTH ON (2)
+    if(level == 0) {
+        HAL_GPIO_WritePin(HEATER_1_GPIO_Port, HEATER_1_Pin, 0);
+        HAL_GPIO_WritePin(HEATER_2_GPIO_Port, HEATER_2_Pin, 0);
+    } else if(level == 1) {
+        HAL_GPIO_WritePin(HEATER_1_GPIO_Port, HEATER_1_Pin, 1);
+        HAL_GPIO_WritePin(HEATER_2_GPIO_Port, HEATER_2_Pin, 0);
+    } else {
+        HAL_GPIO_WritePin(HEATER_1_GPIO_Port, HEATER_1_Pin, 1);
+        HAL_GPIO_WritePin(HEATER_2_GPIO_Port, HEATER_2_Pin, 1);
+    }
+}
+
+void FIA_SetCirculationFans(uint8_t level) {
+    // Set circulation fans OFF (0), ONE ON (1) or BOTH ON (2)
+    if(level == 0) {
+        HAL_GPIO_WritePin(FAN_2_GPIO_Port, FAN_2_Pin, 0);
+        HAL_GPIO_WritePin(FAN_3_GPIO_Port, FAN_3_Pin, 0);
+    } else if(level == 1) {
+        HAL_GPIO_WritePin(FAN_2_GPIO_Port, FAN_2_Pin, 1);
+        HAL_GPIO_WritePin(FAN_3_GPIO_Port, FAN_3_Pin, 0);
+    } else {
+        HAL_GPIO_WritePin(FAN_2_GPIO_Port, FAN_2_Pin, 1);
+        HAL_GPIO_WritePin(FAN_3_GPIO_Port, FAN_3_Pin, 1);
+    }
+}
+
+void FIA_SetHeatExchangerFan(uint8_t status) {
+    // Set heat exchanger fan ON (1) or OFF (0)
+    HAL_GPIO_WritePin(FAN_1_GPIO_Port, FAN_1_Pin, !!status);
+}
+
+void FIA_SetBacklightBallastFans(uint8_t status) {
+    // Set backlight electronic ballast fans ON (1) or OFF (0)
+    HAL_GPIO_WritePin(FAN_4_GPIO_Port, FAN_4_Pin, !!status);
 }

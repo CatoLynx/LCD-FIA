@@ -54,11 +54,14 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
+// LCD Data buffers per LCD bus
 uint8_t lcdData1[LCD_BUF_SIZE];
 uint8_t lcdData2[LCD_BUF_SIZE];
 uint8_t lcdData3[LCD_BUF_SIZE];
 uint8_t lcdData4[LCD_BUF_SIZE];
-uint8_t currentRAM[NUM_LCD_ROWS];
+
+// Status variables for selected RAM per LCD bus
+uint8_t currentRAM[NUM_LCD_BUSES];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -116,19 +119,17 @@ int main(void)
   /* USER CODE BEGIN 2 */
     FIA_Init();
 
-    HAL_GPIO_WritePin(GPIOD, LIGHT_Pin, 1);
-    HAL_GPIO_WritePin(GPIOD, HEATER_1_Pin, 1);
-    HAL_GPIO_WritePin(GPIOD, HEATER_2_Pin, 1);
-    HAL_GPIO_WritePin(GPIOD, FAN_1_Pin, 1);
-    HAL_GPIO_WritePin(GPIOD, FAN_2_Pin, 1);
-    HAL_GPIO_WritePin(GPIOD, FAN_3_Pin, 1);
-    HAL_GPIO_WritePin(GPIOD, FAN_4_Pin, 1);
+    FIA_SetBacklight(1);
+    FIA_SetHeaters(0);
+    FIA_SetHeatExchangerFan(1);
+    FIA_SetCirculationFans(2);
+    FIA_SetBacklightBallastFans(1);
 
-    FIA_setBacklightBrightness(SIDE_A, 0);
-    FIA_setBacklightBrightness(SIDE_B, 0);
+    FIA_SetBacklightBrightness(SIDE_A, 0);
+    FIA_SetBacklightBrightness(SIDE_B, 0);
 
-    FIA_setLCDContrast(SIDE_A, 4095);
-    FIA_setLCDContrast(SIDE_B, 4095);
+    FIA_SetLCDContrast(SIDE_A, 4095);
+    FIA_SetLCDContrast(SIDE_B, 4095);
 
     memset(bitmapBufferSideA, 0x0F, BITMAP_BUF_SIZE);
     memset(bitmapBufferSideB, 0x0F, BITMAP_BUF_SIZE);
@@ -142,49 +143,49 @@ int main(void)
     /* USER CODE BEGIN 3 */
         if (!bitmapReceiveActive) {
             HAL_SPI_Receive_DMA(&BITMAP_DATA_SPI, bitmapBufferSideA, BITMAP_BUF_SIZE);
-            FIA_setStatusLED(2, 1);
+            FIA_SetStatusLED(2, 1);
         }
 
         if(updateBacklightBrightnessFlag) {
-          FIA_setBacklightBrightness(SIDE_A, FIA_getEnvBrightness(SIDE_A));
-          FIA_setBacklightBrightness(SIDE_B, FIA_getEnvBrightness(SIDE_B));
+          FIA_SetBacklightBrightness(SIDE_A, FIA_GetEnvBrightness(SIDE_A));
+          FIA_SetBacklightBrightness(SIDE_B, FIA_GetEnvBrightness(SIDE_B));
           updateBacklightBrightnessFlag = 0;
         }
 
-        if (!isTransmitActive(ROW_1)) {
-            convertBitmap(lcdData1, bitmapBufferSideA, NUM_HALF_PANELS, currentRAM[ROW_1]);
-            transmitBitmap(lcdData1, NUM_HALF_PANELS, ROW_1);
-            if (currentRAM[ROW_1] == RAM1) {
-                currentRAM[ROW_1] = RAM2;
+        if (!LCD_IsTransmitActive(BUS_1)) {
+            LCD_ConvertBitmap(lcdData1, bitmapBufferSideA, NUM_HALF_PANELS, currentRAM[BUS_1]);
+            LCD_TransmitBitmap(lcdData1, NUM_HALF_PANELS, BUS_1);
+            if (currentRAM[BUS_1] == RAM1) {
+                currentRAM[BUS_1] = RAM2;
             } else {
-                currentRAM[ROW_1] = RAM1;
+                currentRAM[BUS_1] = RAM1;
             }
         }
-        if (!isTransmitActive(ROW_2)) {
-            convertBitmap(lcdData2, &bitmapBufferSideA[BITMAP_BUF_HALF_SIZE], NUM_HALF_PANELS, currentRAM[ROW_2]);
-            transmitBitmap(lcdData2, NUM_HALF_PANELS, ROW_2);
-            if (currentRAM[ROW_2] == RAM1) {
-                currentRAM[ROW_2] = RAM2;
+        if (!LCD_IsTransmitActive(BUS_2)) {
+            LCD_ConvertBitmap(lcdData2, &bitmapBufferSideA[BITMAP_BUF_HALF_SIZE], NUM_HALF_PANELS, currentRAM[BUS_2]);
+            LCD_TransmitBitmap(lcdData2, NUM_HALF_PANELS, BUS_2);
+            if (currentRAM[BUS_2] == RAM1) {
+                currentRAM[BUS_2] = RAM2;
             } else {
-                currentRAM[ROW_2] = RAM1;
+                currentRAM[BUS_2] = RAM1;
             }
         }
-        if (!isTransmitActive(ROW_3)) {
-            convertBitmap(lcdData3, bitmapBufferSideA, NUM_HALF_PANELS, currentRAM[ROW_3]);
-            transmitBitmap(lcdData3, NUM_HALF_PANELS, ROW_3);
-            if (currentRAM[ROW_3] == RAM1) {
-                currentRAM[ROW_3] = RAM2;
+        if (!LCD_IsTransmitActive(BUS_3)) {
+            LCD_ConvertBitmap(lcdData3, bitmapBufferSideA, NUM_HALF_PANELS, currentRAM[BUS_3]);
+            LCD_TransmitBitmap(lcdData3, NUM_HALF_PANELS, BUS_3);
+            if (currentRAM[BUS_3] == RAM1) {
+                currentRAM[BUS_3] = RAM2;
             } else {
-                currentRAM[ROW_3] = RAM1;
+                currentRAM[BUS_3] = RAM1;
             }
         }
-        if (!isTransmitActive(ROW_4)) {
-            convertBitmap(lcdData4, &bitmapBufferSideA[BITMAP_BUF_HALF_SIZE], NUM_HALF_PANELS, currentRAM[ROW_4]);
-            transmitBitmap(lcdData4, NUM_HALF_PANELS, ROW_4);
-            if (currentRAM[ROW_4] == RAM1) {
-                currentRAM[ROW_4] = RAM2;
+        if (!LCD_IsTransmitActive(BUS_4)) {
+            LCD_ConvertBitmap(lcdData4, &bitmapBufferSideA[BITMAP_BUF_HALF_SIZE], NUM_HALF_PANELS, currentRAM[BUS_4]);
+            LCD_TransmitBitmap(lcdData4, NUM_HALF_PANELS, BUS_4);
+            if (currentRAM[BUS_4] == RAM1) {
+                currentRAM[BUS_4] = RAM2;
             } else {
-                currentRAM[ROW_4] = RAM1;
+                currentRAM[BUS_4] = RAM1;
             }
         }
     }
