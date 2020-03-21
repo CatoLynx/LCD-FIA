@@ -1,0 +1,2 @@
+- Contrast OP-Amp: Must be more powerful and source / sink current
+- OneWire: Missing pull-up resistors
