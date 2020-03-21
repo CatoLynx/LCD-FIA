@@ -14,7 +14,15 @@ void FIA_Init() {
     HAL_DAC_Start(&LCD_CONTRAST_DAC, DAC1_CHANNEL_1);
     HAL_DAC_Start(&LCD_CONTRAST_DAC, DAC1_CHANNEL_2);
     HAL_ADC_Start_DMA(&ENV_BRIGHTNESS_ADC, adcValues, ADC_NUM_CHANNELS);
+    
     FIA_InitI2CDACs();
+
+    FIA_SetBacklight(0);
+    FIA_SetHeaters(0);
+    FIA_SetCirculationFans(0);
+    FIA_SetHeatExchangerFan(0);
+    FIA_SetBacklightBallastFans(0);
+
     FIA_SetStatusLED(1, 0);
     FIA_SetStatusLED(2, 0);
 }
@@ -32,12 +40,39 @@ void FIA_SetBacklightBrightness(FIA_Side_t side, uint16_t value) {
     uint8_t buf[2];
     buf[0] = (value >> 8) & 0x0F;
     buf[1] = value & 0xFF;
-    HAL_I2C_Master_Transmit(&PERIPHERALS_I2C, side == SIDE_A ? I2C_ADDR_DAC_BRIGHTNESS_A : I2C_ADDR_DAC_BRIGHTNESS_B,
-                            buf, 2, I2C_TIMEOUT);
+    switch(side) {
+        case SIDE_A: {
+            HAL_I2C_Master_Transmit(&PERIPHERALS_I2C, I2C_ADDR_DAC_BRIGHTNESS_A, buf, 2, I2C_TIMEOUT);
+            break;
+        }
+        case SIDE_B: {
+            HAL_I2C_Master_Transmit(&PERIPHERALS_I2C, I2C_ADDR_DAC_BRIGHTNESS_B, buf, 2, I2C_TIMEOUT);
+            break;
+        }
+        case SIDE_BOTH: {
+            HAL_I2C_Master_Transmit(&PERIPHERALS_I2C, I2C_ADDR_DAC_BRIGHTNESS_A, buf, 2, I2C_TIMEOUT);
+            HAL_I2C_Master_Transmit(&PERIPHERALS_I2C, I2C_ADDR_DAC_BRIGHTNESS_B, buf, 2, I2C_TIMEOUT);
+            break;
+        }
+    }
 }
 
 void FIA_SetLCDContrast(FIA_Side_t side, uint16_t value) {
-    HAL_DAC_SetValue(&hdac, side == SIDE_A ? DAC_LCD_CONTRAST_SIDE_A : DAC_LCD_CONTRAST_SIDE_B, DAC_ALIGN_12B_R, value);
+    switch(side) {
+        case SIDE_A: {
+            HAL_DAC_SetValue(&hdac, DAC_LCD_CONTRAST_SIDE_A, DAC_ALIGN_12B_R, value);
+            break;
+        }
+        case SIDE_B: {
+            HAL_DAC_SetValue(&hdac, DAC_LCD_CONTRAST_SIDE_B, DAC_ALIGN_12B_R, value);
+            break;
+        }
+        case SIDE_BOTH: {
+            HAL_DAC_SetValue(&hdac, DAC_LCD_CONTRAST_SIDE_A, DAC_ALIGN_12B_R, value);
+            HAL_DAC_SetValue(&hdac, DAC_LCD_CONTRAST_SIDE_B, DAC_ALIGN_12B_R, value);
+            break;
+        }
+    }
 }
 
 void FIA_SetStatusLED(uint8_t number, uint8_t value) {
@@ -56,7 +91,8 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) {
 }
 
 uint16_t FIA_GetEnvBrightness(FIA_Side_t side) {
-    return envBrightness[side];
+    if(side != SIDE_A && side != SIDE_B) return 0;
+    return envBrightness[side - 1];
 }
 
 void FIA_UpdateEnvBrightness() {
@@ -121,4 +157,14 @@ void FIA_SetHeatExchangerFan(uint8_t status) {
 void FIA_SetBacklightBallastFans(uint8_t status) {
     // Set backlight electronic ballast fans ON (1) or OFF (0)
     HAL_GPIO_WritePin(FAN_4_GPIO_Port, FAN_4_Pin, !!status);
+}
+
+FIA_Side_t FIA_GetDoorStatus() {
+    // Get door open status: OPEN (1) or CLOSED (0)
+    uint8_t doorA = !HAL_GPIO_ReadPin(DOOR_A_GPIO_Port, DOOR_A_Pin);
+    uint8_t doorB = !HAL_GPIO_ReadPin(DOOR_B_GPIO_Port, DOOR_B_Pin);
+    if(doorA && doorB) return SIDE_BOTH;
+    if(doorA) return SIDE_A;
+    if(doorB) return SIDE_B;
+    return SIDE_NONE;
 }

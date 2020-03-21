@@ -51,7 +51,7 @@
 #define BRIGHTNESS_AVG_COUNT 200
 
 // Type definitions
-typedef enum FIA_Side { SIDE_A = 0, SIDE_B = 1 } FIA_Side_t;
+typedef enum FIA_Side { SIDE_NONE = 0, SIDE_A = 1, SIDE_B = 2, SIDE_BOTH = 3 } FIA_Side_t;
 typedef enum FIA_LCD_Bus { BUS_1 = 0, BUS_2 = 1, BUS_3 = 2, BUS_4 = 3 } FIA_LCD_Bus_t;
 
 // Variables for brightness sensors
@@ -78,3 +78,4 @@ void FIA_SetHeaters(uint8_t level);
 void FIA_SetCirculationFans(uint8_t level);
 void FIA_SetHeatExchangerFan(uint8_t status);
 void FIA_SetBacklightBallastFans(uint8_t status);
+FIA_Side_t FIA_GetDoorStatus();

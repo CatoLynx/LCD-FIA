@@ -147,8 +147,10 @@ int main(void)
         }
 
         if(updateBacklightBrightnessFlag) {
-          FIA_SetBacklightBrightness(SIDE_A, FIA_GetEnvBrightness(SIDE_A));
-          FIA_SetBacklightBrightness(SIDE_B, FIA_GetEnvBrightness(SIDE_B));
+          FIA_Side_t doorStatus = FIA_GetDoorStatus();
+          // Auto-adjust brightness or set to minimum if door is open
+          FIA_SetBacklightBrightness(SIDE_A, (doorStatus & SIDE_A) ? 0 : FIA_GetEnvBrightness(SIDE_A));
+          FIA_SetBacklightBrightness(SIDE_B, (doorStatus & SIDE_B) ? 0 : FIA_GetEnvBrightness(SIDE_B));
           updateBacklightBrightnessFlag = 0;
         }
 
