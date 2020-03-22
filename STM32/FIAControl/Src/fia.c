@@ -4,7 +4,7 @@
 #include "stm32f4xx_hal.h"
 #include "util.h"
 
-uint16_t FIA_BacklightBaseBrightness[2] = {2048, 2048};
+int16_t backlightBaseBrightness[2] = {2048, 2048};
 uint8_t firstADCReadFlag = 1;
 
 void FIA_Init(void) {
@@ -46,14 +46,18 @@ void FIA_SetBacklightBrightness(FIA_Side_t side, uint16_t value) {
     buf[1] = value & 0xFF;
     switch (side) {
         case SIDE_A: {
+            backlightBrightness[0] = value;
             HAL_I2C_Master_Transmit(&PERIPHERALS_I2C, I2C_ADDR_DAC_BRIGHTNESS_A, buf, 2, I2C_TIMEOUT);
             break;
         }
         case SIDE_B: {
+            backlightBrightness[1] = value;
             HAL_I2C_Master_Transmit(&PERIPHERALS_I2C, I2C_ADDR_DAC_BRIGHTNESS_B, buf, 2, I2C_TIMEOUT);
             break;
         }
         case SIDE_BOTH: {
+            backlightBrightness[0] = value;
+            backlightBrightness[1] = value;
             HAL_I2C_Master_Transmit(&PERIPHERALS_I2C, I2C_ADDR_DAC_BRIGHTNESS_A, buf, 2, I2C_TIMEOUT);
             HAL_I2C_Master_Transmit(&PERIPHERALS_I2C, I2C_ADDR_DAC_BRIGHTNESS_B, buf, 2, I2C_TIMEOUT);
             break;
@@ -106,6 +110,46 @@ uint16_t FIA_GetEnvBrightness(FIA_Side_t side) {
     return envBrightness[side - 1];
 }
 
+void FIA_SetBacklightBaseBrightness(FIA_Side_t side, int16_t value) {
+    switch (side) {
+        case SIDE_A: {
+            backlightBaseBrightness[0] = value;
+            break;
+        }
+        case SIDE_B: {
+            backlightBaseBrightness[1] = value;
+            break;
+        }
+        case SIDE_BOTH: {
+            backlightBaseBrightness[0] = value;
+            backlightBaseBrightness[1] = value;
+            break;
+        }
+        case SIDE_NONE: {
+            break;
+        }
+    }
+}
+
+int16_t FIA_GetBacklightBaseBrightness(FIA_Side_t side) {
+    if (side != SIDE_A && side != SIDE_B)
+        return 0;
+    return backlightBaseBrightness[side - 1];
+}
+
+uint16_t FIA_GetBacklightBrightness(FIA_Side_t side) {
+    if (side != SIDE_A && side != SIDE_B)
+        return 0;
+    return backlightBrightness[side - 1];
+}
+
+uint16_t FIA_CalculateBacklightBrightness(FIA_Side_t side, uint16_t envBrt) {
+    if (side != SIDE_A && side != SIDE_B)
+        return 0;
+    uint16_t result = (uint32_t)limitRange(envBrt + backlightBaseBrightness[side - 1] - 2048, 0, 4095);
+    return result;
+}
+
 void FIA_UpdateADCValues() {
     // CH1, CH2 (Env Brightness) sensor range: 0.3 ... 0.65V (ADC values 370 ... 800)
     // CH3 (Internal Temperature) sensor range: ???
@@ -126,8 +170,7 @@ void FIA_UpdateADCValues() {
 
     // 2 brightness sensors...
     for (uint8_t c = 0; c < 2; c++) {
-        envBrightness[c] = (uint32_t)limitRange(
-            mapRange(adcAverages[c], 370, 800, 0, 4095) + FIA_BacklightBaseBrightness[c] - 2048, 0, 4095);
+        envBrightness[c] = (uint16_t)mapRange(adcAverages[c], 370, 800, 0, 4095);
     }
 
     // ...and the internal temperature sensor

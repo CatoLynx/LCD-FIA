@@ -26,13 +26,43 @@ void UART_ProcessCommand(uint8_t command, uint8_t* parameters, uint8_t parameter
         }
 
         case UART_CMD_SET_BACKLIGHT_BASE_BRIGHTNESS: {
-            memcpy(FIA_BacklightBaseBrightness, parameters, 4);
+            uint16_t brtA = ((uint16_t)parameters[0] << 8) | parameters[1];
+            uint16_t brtB = ((uint16_t)parameters[2] << 8) | parameters[3];
+            FIA_SetBacklightBaseBrightness(SIDE_A, brtA);
+            FIA_SetBacklightBaseBrightness(SIDE_B, brtB);
             responseLength = 0;
             break;
         }
 
         case UART_CMD_GET_BACKLIGHT_BASE_BRIGHTNESS: {
-            memcpy(uartTxPayload, FIA_BacklightBaseBrightness, 4);
+            uint16_t brtA = FIA_GetBacklightBaseBrightness(SIDE_A);
+            uint16_t brtB = FIA_GetBacklightBaseBrightness(SIDE_B);
+            uartTxPayload[0] = brtA >> 8;
+            uartTxPayload[1] = brtA & 0xFF;
+            uartTxPayload[2] = brtB >> 8;
+            uartTxPayload[3] = brtB & 0xFF;
+            responseLength = 4;
+            break;
+        }
+
+        case UART_CMD_GET_BACKLIGHT_BRIGHTNESS: {
+            uint16_t brtA = FIA_GetBacklightBrightness(SIDE_A);
+            uint16_t brtB = FIA_GetBacklightBrightness(SIDE_B);
+            uartTxPayload[0] = brtA >> 8;
+            uartTxPayload[1] = brtA & 0xFF;
+            uartTxPayload[2] = brtB >> 8;
+            uartTxPayload[3] = brtB & 0xFF;
+            responseLength = 4;
+            break;
+        }
+
+        case UART_CMD_GET_ENV_BRIGHTNESS: {
+            uint16_t brtA = FIA_GetEnvBrightness(SIDE_A);
+            uint16_t brtB = FIA_GetEnvBrightness(SIDE_B);
+            uartTxPayload[0] = brtA >> 8;
+            uartTxPayload[1] = brtA & 0xFF;
+            uartTxPayload[2] = brtB >> 8;
+            uartTxPayload[3] = brtB & 0xFF;
             responseLength = 4;
             break;
         }
