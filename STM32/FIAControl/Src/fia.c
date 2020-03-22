@@ -1,5 +1,6 @@
 #include "fia.h"
 #include "ds18b20.h"
+#include "sht21.h"
 #include "stm32f4xx_hal.h"
 #include "util.h"
 
@@ -105,26 +106,33 @@ uint16_t FIA_GetEnvBrightness(FIA_Side_t side) {
     return envBrightness[side - 1];
 }
 
-void FIA_UpdateEnvBrightness() {
-    // Sensor range: 0.3 ... 0.65V (ADC values 370 ... 800)
+void FIA_UpdateADCValues() {
+    // CH1, CH2 (Env Brightness) sensor range: 0.3 ... 0.65V (ADC values 370 ... 800)
+    // CH3 (Internal Temperature) sensor range: ???
     for (uint8_t c = 0; c < ADC_NUM_CHANNELS; c++) {
         adcRingBuffer[adcRingBufferIndex++] = adcValues[c];
     }
-    if (adcRingBufferIndex >= (ADC_NUM_CHANNELS * BRIGHTNESS_AVG_COUNT))
+    if (adcRingBufferIndex >= (ADC_NUM_CHANNELS * ADC_AVG_COUNT))
         adcRingBufferIndex = 0;
     if (firstADCAverageFlag) {
         for (uint8_t c = 0; c < ADC_NUM_CHANNELS; c++) {
-            for (uint32_t i = c; i < BRIGHTNESS_AVG_COUNT * ADC_NUM_CHANNELS; i += ADC_NUM_CHANNELS) {
+            for (uint32_t i = c; i < ADC_AVG_COUNT * ADC_NUM_CHANNELS; i += ADC_NUM_CHANNELS) {
                 adcRingBuffer[i] = adcValues[c];
             }
         }
         firstADCAverageFlag = 0;
     }
-    avgInterleaved(adcRingBuffer, adcAverages, ADC_NUM_CHANNELS, BRIGHTNESS_AVG_COUNT);
-    for (uint8_t c = 0; c < ADC_NUM_CHANNELS; c++) {
+    avgInterleaved(adcRingBuffer, adcAverages, ADC_NUM_CHANNELS, ADC_AVG_COUNT);
+
+    // 2 brightness sensors...
+    for (uint8_t c = 0; c < 2; c++) {
         envBrightness[c] = (uint32_t)limitRange(
             mapRange(adcAverages[c], 370, 800, 0, 4095) + FIA_BacklightBaseBrightness[c] - 2048, 0, 4095);
     }
+
+    // ...and the internal temperature sensor
+    tempSensorValues[3] = ((mapRange(adcAverages[2], 0, 4095, 0, 3.3) - TEMP_SENS_V25) / TEMP_SENS_AVG_SLOPE) + 25.0;
+
     updateBacklightBrightnessFlag = 1;
 }
 
@@ -143,8 +151,8 @@ void FIA_SetHeaters(uint8_t level) {
         HAL_GPIO_WritePin(HEATER_1_GPIO_Port, HEATER_1_Pin, 0);
         HAL_GPIO_WritePin(HEATER_2_GPIO_Port, HEATER_2_Pin, 0);
     } else if (level == 1) {
-        HAL_GPIO_WritePin(HEATER_1_GPIO_Port, HEATER_1_Pin, 1);
-        HAL_GPIO_WritePin(HEATER_2_GPIO_Port, HEATER_2_Pin, 0);
+        HAL_GPIO_WritePin(HEATER_1_GPIO_Port, HEATER_1_Pin, 0);
+        HAL_GPIO_WritePin(HEATER_2_GPIO_Port, HEATER_2_Pin, 1);
     } else {
         HAL_GPIO_WritePin(HEATER_1_GPIO_Port, HEATER_1_Pin, 1);
         HAL_GPIO_WritePin(HEATER_2_GPIO_Port, HEATER_2_Pin, 1);
@@ -163,8 +171,8 @@ void FIA_SetCirculationFans(uint8_t level) {
         HAL_GPIO_WritePin(FAN_2_GPIO_Port, FAN_2_Pin, 0);
         HAL_GPIO_WritePin(FAN_3_GPIO_Port, FAN_3_Pin, 0);
     } else if (level == 1) {
-        HAL_GPIO_WritePin(FAN_2_GPIO_Port, FAN_2_Pin, 1);
-        HAL_GPIO_WritePin(FAN_3_GPIO_Port, FAN_3_Pin, 0);
+        HAL_GPIO_WritePin(FAN_2_GPIO_Port, FAN_2_Pin, 0);
+        HAL_GPIO_WritePin(FAN_3_GPIO_Port, FAN_3_Pin, 1);
     } else {
         HAL_GPIO_WritePin(FAN_2_GPIO_Port, FAN_2_Pin, 1);
         HAL_GPIO_WritePin(FAN_3_GPIO_Port, FAN_3_Pin, 1);
@@ -214,29 +222,34 @@ void FIA_StartExtTempSensorConv(void) {
     DS18B20_ConvertTemperature(TEMP_2_ONEWIRE_GPIO_Port, TEMP_2_ONEWIRE_Pin);
 }
 
-void FIA_ReadExtTempSensors(void) {
-    // Initiate a read from the external temperature sensors
-    extTempSensorValues[0] = DS18B20_ReadTemperature(TEMP_1_ONEWIRE_GPIO_Port, TEMP_1_ONEWIRE_Pin);
-    extTempSensorValues[1] = DS18B20_ReadTemperature(TEMP_2_ONEWIRE_GPIO_Port, TEMP_2_ONEWIRE_Pin);
+void FIA_ReadTempSensors(void) {
+    // Initiate a read from the temperature sensors
+    tempSensorValues[0] = DS18B20_ReadTemperature(TEMP_1_ONEWIRE_GPIO_Port, TEMP_1_ONEWIRE_Pin);
+    tempSensorValues[1] = DS18B20_ReadTemperature(TEMP_2_ONEWIRE_GPIO_Port, TEMP_2_ONEWIRE_Pin);
+    tempSensorValues[2] = SHT21_GetTemperature();
+    SHT21_HandleCommunication();
 }
 
 double FIA_GetTemperature(FIA_Temp_Sensor_t sensor) {
     // Get the value for the specified temperature sensor
     switch (sensor) {
         case EXT_1: {
-            return extTempSensorValues[0];
+            return tempSensorValues[0];
         }
         case EXT_2: {
-            return extTempSensorValues[1];
+            return tempSensorValues[1];
         }
         case BOARD: {
-            // TODO
-            return 0;
+            return tempSensorValues[2];
         }
         case MCU: {
-            // TODO
-            return 0;
+            return tempSensorValues[3];
         }
     }
     return 0;
+}
+
+double FIA_GetHumidity() {
+    // Get the relative humidity of the inside air (in %)
+    return SHT21_GetHumidity();
 }

@@ -27,6 +27,7 @@
 #define UART_CMD_GET_DOOR_STATES 0x30
 
 #define UART_CMD_GET_TEMPERATURES 0x40
+#define UART_CMD_GET_HUMIDITY 0x41
 
 // Function prototypes
 void UART_ProcessCommand(uint8_t command, uint8_t* parameters, uint8_t parameterLength);

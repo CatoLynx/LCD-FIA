@@ -94,11 +94,25 @@ void UART_ProcessCommand(uint8_t command, uint8_t* parameters, uint8_t parameter
         case UART_CMD_GET_TEMPERATURES: {
             int16_t tempExt1 = FIA_GetTemperature(EXT_1) * 100;
             int16_t tempExt2 = FIA_GetTemperature(EXT_2) * 100;
+            int16_t tempBoard = FIA_GetTemperature(BOARD) * 100;
+            int16_t tempMCU = FIA_GetTemperature(MCU) * 100;
             uartTxPayload[0] = tempExt1 >> 8;
             uartTxPayload[1] = tempExt1 & 0xFF;
             uartTxPayload[2] = tempExt2 >> 8;
             uartTxPayload[3] = tempExt2 & 0xFF;
-            responseLength = 4;
+            uartTxPayload[4] = tempBoard >> 8;
+            uartTxPayload[5] = tempBoard & 0xFF;
+            uartTxPayload[6] = tempMCU >> 8;
+            uartTxPayload[7] = tempMCU & 0xFF;
+            responseLength = 8;
+            break;
+        }
+
+        case UART_CMD_GET_HUMIDITY: {
+            int16_t humidity = FIA_GetHumidity() * 100;
+            uartTxPayload[0] = humidity >> 8;
+            uartTxPayload[1] = humidity & 0xFF;
+            responseLength = 2;
             break;
         }
     }
