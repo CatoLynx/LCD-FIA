@@ -25,6 +25,8 @@
 /* USER CODE END 0 */
 
 UART_HandleTypeDef huart10;
+DMA_HandleTypeDef hdma_uart10_rx;
+DMA_HandleTypeDef hdma_uart10_tx;
 
 /* UART10 init function */
 void MX_UART10_Init(void)
@@ -37,7 +39,7 @@ void MX_UART10_Init(void)
   huart10.Init.Parity = UART_PARITY_NONE;
   huart10.Init.Mode = UART_MODE_TX_RX;
   huart10.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  huart10.Init.OverSampling = UART_OVERSAMPLING_16;
+  huart10.Init.OverSampling = UART_OVERSAMPLING_8;
   if (HAL_UART_Init(&huart10) != HAL_OK)
   {
     Error_Handler();
@@ -69,6 +71,46 @@ void HAL_UART_MspInit(UART_HandleTypeDef* uartHandle)
     GPIO_InitStruct.Alternate = GPIO_AF11_UART10;
     HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
+    /* UART10 DMA Init */
+    /* UART10_RX Init */
+    hdma_uart10_rx.Instance = DMA2_Stream0;
+    hdma_uart10_rx.Init.Channel = DMA_CHANNEL_5;
+    hdma_uart10_rx.Init.Direction = DMA_PERIPH_TO_MEMORY;
+    hdma_uart10_rx.Init.PeriphInc = DMA_PINC_DISABLE;
+    hdma_uart10_rx.Init.MemInc = DMA_MINC_ENABLE;
+    hdma_uart10_rx.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
+    hdma_uart10_rx.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
+    hdma_uart10_rx.Init.Mode = DMA_CIRCULAR;
+    hdma_uart10_rx.Init.Priority = DMA_PRIORITY_HIGH;
+    hdma_uart10_rx.Init.FIFOMode = DMA_FIFOMODE_DISABLE;
+    if (HAL_DMA_Init(&hdma_uart10_rx) != HAL_OK)
+    {
+      Error_Handler();
+    }
+
+    __HAL_LINKDMA(uartHandle,hdmarx,hdma_uart10_rx);
+
+    /* UART10_TX Init */
+    hdma_uart10_tx.Instance = DMA2_Stream5;
+    hdma_uart10_tx.Init.Channel = DMA_CHANNEL_9;
+    hdma_uart10_tx.Init.Direction = DMA_MEMORY_TO_PERIPH;
+    hdma_uart10_tx.Init.PeriphInc = DMA_PINC_DISABLE;
+    hdma_uart10_tx.Init.MemInc = DMA_MINC_ENABLE;
+    hdma_uart10_tx.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
+    hdma_uart10_tx.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
+    hdma_uart10_tx.Init.Mode = DMA_NORMAL;
+    hdma_uart10_tx.Init.Priority = DMA_PRIORITY_LOW;
+    hdma_uart10_tx.Init.FIFOMode = DMA_FIFOMODE_DISABLE;
+    if (HAL_DMA_Init(&hdma_uart10_tx) != HAL_OK)
+    {
+      Error_Handler();
+    }
+
+    __HAL_LINKDMA(uartHandle,hdmatx,hdma_uart10_tx);
+
+    /* UART10 interrupt Init */
+    HAL_NVIC_SetPriority(UART10_IRQn, 1, 0);
+    HAL_NVIC_EnableIRQ(UART10_IRQn);
   /* USER CODE BEGIN UART10_MspInit 1 */
 
   /* USER CODE END UART10_MspInit 1 */
@@ -92,6 +134,12 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* uartHandle)
     */
     HAL_GPIO_DeInit(GPIOE, CTRL_RX_Pin|CTRL_TX_Pin);
 
+    /* UART10 DMA DeInit */
+    HAL_DMA_DeInit(uartHandle->hdmarx);
+    HAL_DMA_DeInit(uartHandle->hdmatx);
+
+    /* UART10 interrupt Deinit */
+    HAL_NVIC_DisableIRQ(UART10_IRQn);
   /* USER CODE BEGIN UART10_MspDeInit 1 */
 
   /* USER CODE END UART10_MspDeInit 1 */

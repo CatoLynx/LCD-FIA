@@ -14,6 +14,7 @@
 #include "globals.h"
 #include "i2c.h"
 #include "tim.h"
+#include "usart.h"
 
 // Peripheral definitions
 #define LCD_SPI_ROW_1 hspi1
@@ -30,6 +31,7 @@
 #define ENV_BRIGHTNESS_ADC hadc1
 #define ADC_NUM_CHANNELS 2
 #define PERIPHERALS_I2C hi2c1
+#define CONTROL_UART huart10
 #define DAC_LCD_CONTRAST_SIDE_A DAC1_CHANNEL_1
 #define DAC_LCD_CONTRAST_SIDE_B DAC1_CHANNEL_2
 
@@ -58,7 +60,7 @@ uint32_t adcValues[ADC_NUM_CHANNELS];
 uint32_t adcRingBuffer[ADC_NUM_CHANNELS * BRIGHTNESS_AVG_COUNT];
 uint32_t adcAverages[ADC_NUM_CHANNELS];
 uint32_t envBrightness[2];
-uint32_t baseBrightness[2];
+uint16_t FIA_BacklightBaseBrightness[2];
 uint8_t updateBacklightBrightnessFlag;
 uint8_t firstADCReadFlag;
 uint8_t firstADCAverageFlag;
@@ -75,11 +77,16 @@ void FIA_SetStatusLED(uint8_t number, uint8_t value);
 uint16_t FIA_GetEnvBrightness(FIA_Side_t side);
 void FIA_UpdateEnvBrightness(void);
 void FIA_SetBacklight(uint8_t status);
+uint8_t FIA_GetBacklight(void);
 void FIA_SetHeaters(uint8_t level);
+uint8_t FIA_GetHeaters(void);
 void FIA_SetCirculationFans(uint8_t level);
+uint8_t FIA_GetCirculationFans(void);
 void FIA_SetHeatExchangerFan(uint8_t status);
+uint8_t FIA_GetHeatExchangerFan(void);
 void FIA_SetBacklightBallastFans(uint8_t status);
-FIA_Side_t FIA_GetDoorStatus(void);
+uint8_t FIA_GetBacklightBallastFans(void);
+FIA_Side_t FIA_GetDoors(void);
 void FIA_StartExtTempSensorConv(void);
 void FIA_ReadExtTempSensors(void);
 double FIA_GetTemperature(FIA_Temp_Sensor_t sensor);

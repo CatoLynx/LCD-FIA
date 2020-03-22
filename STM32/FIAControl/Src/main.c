@@ -36,6 +36,7 @@
 #include "aditech.h"
 #include "ds18b20.h"
 #include "fia.h"
+#include "uart_protocol.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -120,6 +121,7 @@ int main(void)
   MX_TIM4_Init();
   /* USER CODE BEGIN 2 */
     FIA_Init();
+    UART_StartRxRingBuffer();
 
     FIA_SetBacklight(1);
     FIA_SetHeaters(0);
@@ -143,13 +145,15 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+        UART_HandleProtocol();
+
         if (!bitmapReceiveActive) {
             HAL_SPI_Receive_DMA(&BITMAP_DATA_SPI, bitmapBufferSideA, BITMAP_BUF_SIZE);
             FIA_SetStatusLED(2, 1);
         }
 
         if (updateBacklightBrightnessFlag) {
-            FIA_Side_t doorStatus = FIA_GetDoorStatus();
+            FIA_Side_t doorStatus = FIA_GetDoors();
             // Auto-adjust brightness or set to minimum if door is open
             FIA_SetBacklightBrightness(SIDE_A, (doorStatus & SIDE_A) ? 0 : FIA_GetEnvBrightness(SIDE_A));
             FIA_SetBacklightBrightness(SIDE_B, (doorStatus & SIDE_B) ? 0 : FIA_GetEnvBrightness(SIDE_B));
