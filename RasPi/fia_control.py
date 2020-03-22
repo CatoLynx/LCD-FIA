@@ -1,6 +1,8 @@
 import serial
 import spidev
 
+from PIL import Image
+
 class FIA:
     UART_CMD_NULL = 0x00
     
@@ -8,6 +10,8 @@ class FIA:
     UART_CMD_GET_BACKLIGHT_STATE = 0x11
     UART_CMD_SET_BACKLIGHT_BASE_BRIGHTNESS = 0x12
     UART_CMD_GET_BACKLIGHT_BASE_BRIGHTNESS = 0x13
+    UART_CMD_GET_BACKLIGHT_BRIGHTNESS = 0x14
+    UART_CMD_GET_ENV_BRIGHTNESS = 0x15
     
     UART_CMD_SET_HEATERS_STATE = 0x20
     UART_CMD_GET_HEATERS_STATE = 0x21
@@ -21,12 +25,17 @@ class FIA:
     UART_CMD_GET_DOOR_STATES = 0x30
     
     UART_CMD_GET_TEMPERATURES = 0x40
+    UART_CMD_GET_HUMIDITY = 0x41
     
-    def __init__(self, uart_port, spi_port, uart_baud = 115200, uart_timeout = 1.0, spi_clock = 5000000):
+    def __init__(self, uart_port, spi_port, uart_baud = 115200, uart_timeout = 1.0, spi_clock = 5000000, width = 480, height = 128, panel_width = 96, panel_height = 64):
         self.uart = serial.Serial(uart_port, baudrate=uart_baud, timeout=uart_timeout)
         self.spi = spidev.SpiDev()
         self.spi.open(*spi_port)
         self.spi.max_speed_hz = spi_clock
+        self.width = width
+        self.height = height
+        self.panel_width = panel_width
+        self.panel_height = panel_height
     
     def send_uart_command_raw(self, raw_command):
         # Just send a raw UART command
@@ -64,6 +73,18 @@ class FIA:
         self.send_uart_command_raw(raw_command)
         return self.read_uart_response()
     
+    def twos_comp(self, val, bits):
+        if val < 0:
+            return val + 2**bits
+        else:
+            return val
+    
+    def inv_twos_comp(self, val, bits):
+        if val & (1 << (bits-1)):
+            return val - 2**bits
+        else:
+            return val
+    
     def null_cmd(self):
         resp = self.send_uart_command(self.UART_CMD_NULL)
     
@@ -75,13 +96,27 @@ class FIA:
         return resp[0]
     
     def set_backlight_base_brightness(self, side_a, side_b):
-        params = [side_a & 0xFF, side_a >> 8, side_b & 0xFF, side_b >> 8]
+        side_a = self.twos_comp(side_a, 16)
+        side_b = self.twos_comp(side_b, 16)
+        params = [side_a >> 8, side_a & 0xFF, side_b >> 8, side_b & 0xFF]
         resp = self.send_uart_command(self.UART_CMD_SET_BACKLIGHT_BASE_BRIGHTNESS, params)
     
     def get_backlight_base_brightness(self):
         resp = self.send_uart_command(self.UART_CMD_GET_BACKLIGHT_BASE_BRIGHTNESS)
-        side_a = (resp[1] << 8) | resp[0]
-        side_b = (resp[3] << 8) | resp[2]
+        side_a = self.inv_twos_comp((resp[0] << 8) | resp[1], 16)
+        side_b = self.inv_twos_comp((resp[2] << 8) | resp[3], 16)
+        return side_a, side_b
+    
+    def get_backlight_brightness(self):
+        resp = self.send_uart_command(self.UART_CMD_GET_BACKLIGHT_BRIGHTNESS)
+        side_a = (resp[0] << 8) | resp[1]
+        side_b = (resp[2] << 8) | resp[3]
+        return side_a, side_b
+    
+    def get_env_brightness(self):
+        resp = self.send_uart_command(self.UART_CMD_GET_ENV_BRIGHTNESS)
+        side_a = (resp[0] << 8) | resp[1]
+        side_b = (resp[2] << 8) | resp[3]
         return side_a, side_b
     
     def set_heaters_state(self, state):
@@ -120,4 +155,96 @@ class FIA:
         resp = self.send_uart_command(self.UART_CMD_GET_TEMPERATURES)
         t_ext1 = ((resp[0] << 8) | resp[1]) / 100
         t_ext2 = ((resp[2] << 8) | resp[3]) / 100
-        return t_ext1, t_ext2
+        t_board = ((resp[4] << 8) | resp[5]) / 100
+        t_mcu = ((resp[6] << 8) | resp[7]) / 100
+        return t_ext1, t_ext2, t_board, t_mcu
+
+    def get_humidity(self):
+        resp = self.send_uart_command(self.UART_CMD_GET_HUMIDITY)
+        humidity = ((resp[0] << 8) | resp[1]) / 100
+        return humidity
+    
+    def flatten_img(self, img, panel_height = None):
+        # if panel_height is given, split the image into rows of said height
+        # and flatten each row separately
+        pixels = img.load()
+        width, height = img.size
+
+        if panel_height:
+            num_rows = height // panel_height
+        else:
+            num_rows = 1
+            panel_height = height
+        
+        num_hp_w = width // self.panel_width
+        num_hp_h = panel_height // 32
+        flattened_imgs = []
+        flattened_row_width = num_hp_w * num_hp_h * self.panel_width
+        for row_index in range(num_rows):
+            y_base = row_index * panel_height
+            row_img = img.crop((0, y_base, width-1, y_base+panel_height))
+            
+            out = Image.new('L', (flattened_row_width, 32))
+            
+            x_out = out.size[0] - self.panel_width
+            for yp in range(num_hp_h):
+                if not yp % 2:
+                    r = range(num_hp_w)
+                    rotate = False
+                else:
+                    r = range(num_hp_w-1, -1, -1)
+                    rotate = True
+                
+                for xp in r:
+                    x = width - xp * self.panel_width - self.panel_width
+                    y = yp * 32
+                    if rotate:
+                        out.paste(row_img.crop((x, y, x+self.panel_width, y+32)).rotate(180), (x_out, 0))
+                    else:
+                        out.paste(row_img.crop((x, y, x+self.panel_width, y+32)), (x_out, 0))
+                    x_out -= self.panel_width
+            flattened_imgs.append(out)
+        
+        out = Image.new('L', (flattened_row_width * len(flattened_imgs), 32))
+        for i, img in enumerate(flattened_imgs):
+            out.paste(img, (flattened_row_width * i, 0))
+        return out
+    
+    def img_to_array(self, img):
+        pixels = img.load()
+        width, height = img.size
+
+        output = []
+
+        for x in range(width):
+            for y_byte in range(0, height, 8):
+                byte = 0x00
+                for y_bit in range(8):
+                    y = y_byte + y_bit
+                    state = pixels[x, y] > 64
+                    if state:
+                        byte |= (1 << y_bit)
+                output.append(byte)
+        
+        return output, width, height
+    
+    def send_array(self, array):
+        length = len(array)
+        self.spi.writebytes2(bytearray(array))
+
+    def send_image(self, img):
+        if not isinstance(img, Image.Image):
+            img = Image.open(img)
+        
+        img = img.convert('L')
+        width, height = img.size
+        if width > self.width and height > self.height:
+            img = img.crop((0, 0, self.width, self.height))
+        else:
+            img2 = Image.new('L', (self.width, self.height), 'black')
+            img2.paste(img, (0, 0))
+            img = img2
+        
+        flattened = self.flatten_img(img, self.panel_height)
+        array, width, height = self.img_to_array(flattened)
+        self.send_array(array)
