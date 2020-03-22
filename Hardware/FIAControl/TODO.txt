@@ -1,2 +1,3 @@
 - Contrast OP-Amp: Must be more powerful and source / sink current
 - OneWire: Missing pull-up resistors
+- Env. Backlight input: Doesn't go down to 0V
