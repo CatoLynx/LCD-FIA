@@ -13,6 +13,14 @@ void UART_ProcessCommand(uint8_t command, uint8_t* parameters, uint8_t parameter
             break;
         }
 
+        case UART_CMD_MCU_RESET: {
+            NVIC_SystemReset();
+            // Will probably not be sent
+            uartTxPayload[0] = 0xFF;
+            responseLength = 1;
+            break;
+        }
+
         case UART_CMD_SET_BACKLIGHT_STATE: {
             FIA_SetBacklight(parameters[0]);
             responseLength = 0;
