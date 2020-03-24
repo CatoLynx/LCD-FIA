@@ -2,12 +2,11 @@ import argparse
 import datetime
 import json
 import requests
-import spidev
 import time
 import traceback
 
-from render_layout import LayoutRenderer
-from send_image_spi import send_image
+from layout_renderer import LayoutRenderer
+from fia_control import FIA
 
 
 def load_trains(station):
@@ -73,9 +72,9 @@ def main():
     parser.add_argument('--station', '-s', required=True, type=str)
     args = parser.parse_args()
 
-    spi = spidev.SpiDev()
-    spi.open(3, 0)
-    spi.max_speed_hz = 5000000
+    fia = FIA("/dev/ttyAMA1", (3, 0))
+    fia.mcu_reset()
+    time.sleep(1)
     
     renderer = LayoutRenderer(args.font_dir)
     
@@ -109,7 +108,7 @@ def main():
             }
             
             img = renderer.render(layout, data)
-            send_image(img, spi, 64)
+            fia.send_image(img)
             time.sleep(30)
         except KeyboardInterrupt:
             break

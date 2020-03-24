@@ -5,6 +5,7 @@ from PIL import Image
 
 class FIA:
     UART_CMD_NULL = 0x00
+    UART_CMD_MCU_RESET = 0x01
     
     UART_CMD_SET_BACKLIGHT_STATE = 0x10
     UART_CMD_GET_BACKLIGHT_STATE = 0x11
@@ -63,7 +64,7 @@ class FIA:
         #print(header + payload)
         return bytearray(payload[:-1])
     
-    def send_uart_command(self, command, data = []):
+    def send_uart_command(self, command, data = [], expect_response = True):
         # Send UART command and return response
         assert len(data) <= 254
         raw_command = [0xFF, len(data) + 2, command]
@@ -71,7 +72,10 @@ class FIA:
         checksum = self.calculate_uart_checksum([command] + data)
         raw_command.append(checksum)
         self.send_uart_command_raw(raw_command)
-        return self.read_uart_response()
+        if expect_response:
+            return self.read_uart_response()
+        else:
+            return None
     
     def twos_comp(self, val, bits):
         if val < 0:
@@ -87,6 +91,9 @@ class FIA:
     
     def null_cmd(self):
         resp = self.send_uart_command(self.UART_CMD_NULL)
+    
+    def mcu_reset(self):
+        resp = self.send_uart_command(self.UART_CMD_MCU_RESET, expect_response=False)
     
     def set_backlight_state(self, state):
         resp = self.send_uart_command(self.UART_CMD_SET_BACKLIGHT_STATE, [state])
