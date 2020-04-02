@@ -1,7 +1,8 @@
 import serial
 import spidev
+import time
 
-from PIL import Image
+from PIL import Image, ImageSequence
 
 class FIA:
     UART_CMD_NULL = 0x00
@@ -255,3 +256,31 @@ class FIA:
         flattened = self.flatten_img(img, self.panel_height)
         array, width, height = self.img_to_array(flattened)
         self.send_array(array)
+    
+    def send_gif(self, img):
+        if not isinstance(img, Image.Image):
+            img = Image.open(img)
+        
+        width, height = img.size
+        duration = img.info.get('duration', 1000)
+        
+        frames = []
+        for frame in ImageSequence.Iterator(img):
+            if width > self.width and height > self.height:
+                frame = frame.crop((0, 0, self.width, self.height)).convert('L')
+                frames.append(frame)
+            else:
+                tmp = Image.new('L', (self.width, self.height), 'black')
+                tmp.paste(frame, (0, 0))
+                frames.append(tmp)
+        
+        last_frame_time = 0
+        cur_frame = 0
+        while True:
+            now = time.time()
+            if now - last_frame_time >= duration / 1000:
+                self.send_image(frames[cur_frame])
+                last_frame_time = now
+                cur_frame += 1
+            if cur_frame >= len(frames):
+                cur_frame = 0
