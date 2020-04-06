@@ -29,6 +29,9 @@ class FIA:
     UART_CMD_GET_TEMPERATURES = 0x40
     UART_CMD_GET_HUMIDITY = 0x41
     
+    UART_CMD_SET_LCD_CONTRAST = 0x50
+    UART_CMD_GET_LCD_CONTRAST = 0x51
+    
     def __init__(self, uart_port, spi_port, uart_baud = 115200, uart_timeout = 1.0, spi_clock = 5000000, width = 480, height = 128, panel_width = 96, panel_height = 64):
         self.uart = serial.Serial(uart_port, baudrate=uart_baud, timeout=uart_timeout)
         self.spi = spidev.SpiDev()
@@ -171,6 +174,16 @@ class FIA:
         resp = self.send_uart_command(self.UART_CMD_GET_HUMIDITY)
         humidity = ((resp[0] << 8) | resp[1]) / 100
         return humidity
+    
+    def set_lcd_contrast(self, side_a, side_b):
+        params = [side_a >> 8, side_a & 0xFF, side_b >> 8, side_b & 0xFF]
+        resp = self.send_uart_command(self.UART_CMD_SET_LCD_CONTRAST, params)
+    
+    def get_lcd_contrast(self):
+        resp = self.send_uart_command(self.UART_CMD_GET_LCD_CONTRAST)
+        side_a = (resp[0] << 8) | resp[1]
+        side_b = (resp[2] << 8) | resp[3]
+        return side_a, side_b
     
     def flatten_img(self, img, panel_height = None):
         # if panel_height is given, split the image into rows of said height
