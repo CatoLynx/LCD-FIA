@@ -5,6 +5,7 @@
 #include "util.h"
 
 int16_t backlightBaseBrightness[2] = {2048, 2048};
+uint16_t lcdContrast[2] = {2048, 2048};
 uint8_t firstADCReadFlag = 1;
 
 void FIA_Init(void) {
@@ -68,25 +69,37 @@ void FIA_SetBacklightBrightness(FIA_Side_t side, uint16_t value) {
     }
 }
 
+void FIA_UpdateLCDContrast() {
+    HAL_DAC_SetValue(&hdac, DAC_LCD_CONTRAST_SIDE_A, DAC_ALIGN_12B_R, lcdContrast[0]);
+    HAL_DAC_SetValue(&hdac, DAC_LCD_CONTRAST_SIDE_B, DAC_ALIGN_12B_R, lcdContrast[1]);
+}
+
 void FIA_SetLCDContrast(FIA_Side_t side, uint16_t value) {
     switch (side) {
         case SIDE_A: {
-            HAL_DAC_SetValue(&hdac, DAC_LCD_CONTRAST_SIDE_A, DAC_ALIGN_12B_R, value);
+            lcdContrast[0] = value;
             break;
         }
         case SIDE_B: {
-            HAL_DAC_SetValue(&hdac, DAC_LCD_CONTRAST_SIDE_B, DAC_ALIGN_12B_R, value);
+            lcdContrast[1] = value;
             break;
         }
         case SIDE_BOTH: {
-            HAL_DAC_SetValue(&hdac, DAC_LCD_CONTRAST_SIDE_A, DAC_ALIGN_12B_R, value);
-            HAL_DAC_SetValue(&hdac, DAC_LCD_CONTRAST_SIDE_B, DAC_ALIGN_12B_R, value);
+            lcdContrast[0] = value;
+            lcdContrast[1] = value;
             break;
         }
         case SIDE_NONE: {
             break;
         }
     }
+    updateLCDContrastFlag = 1;
+}
+
+uint16_t FIA_GetLCDContrast(FIA_Side_t side) {
+    if (side != SIDE_A && side != SIDE_B)
+        return 0;
+    return lcdContrast[side - 1];
 }
 
 void FIA_SetStatusLED(uint8_t number, uint8_t value) {

@@ -34,8 +34,8 @@ void UART_ProcessCommand(uint8_t command, uint8_t* parameters, uint8_t parameter
         }
 
         case UART_CMD_SET_BACKLIGHT_BASE_BRIGHTNESS: {
-            uint16_t brtA = ((uint16_t)parameters[0] << 8) | parameters[1];
-            uint16_t brtB = ((uint16_t)parameters[2] << 8) | parameters[3];
+            int16_t brtA = ((int16_t)parameters[0] << 8) | parameters[1];
+            int16_t brtB = ((int16_t)parameters[2] << 8) | parameters[3];
             FIA_SetBacklightBaseBrightness(SIDE_A, brtA);
             FIA_SetBacklightBaseBrightness(SIDE_B, brtB);
             responseLength = 0;
@@ -43,8 +43,8 @@ void UART_ProcessCommand(uint8_t command, uint8_t* parameters, uint8_t parameter
         }
 
         case UART_CMD_GET_BACKLIGHT_BASE_BRIGHTNESS: {
-            uint16_t brtA = FIA_GetBacklightBaseBrightness(SIDE_A);
-            uint16_t brtB = FIA_GetBacklightBaseBrightness(SIDE_B);
+            int16_t brtA = FIA_GetBacklightBaseBrightness(SIDE_A);
+            int16_t brtB = FIA_GetBacklightBaseBrightness(SIDE_B);
             uartTxPayload[0] = brtA >> 8;
             uartTxPayload[1] = brtA & 0xFF;
             uartTxPayload[2] = brtB >> 8;
@@ -151,6 +151,26 @@ void UART_ProcessCommand(uint8_t command, uint8_t* parameters, uint8_t parameter
             uartTxPayload[0] = humidity >> 8;
             uartTxPayload[1] = humidity & 0xFF;
             responseLength = 2;
+            break;
+        }
+
+        case UART_CMD_SET_LCD_CONTRAST: {
+            uint16_t ctrA = ((uint16_t)parameters[0] << 8) | parameters[1];
+            uint16_t ctrB = ((uint16_t)parameters[2] << 8) | parameters[3];
+            FIA_SetLCDContrast(SIDE_A, ctrA);
+            FIA_SetLCDContrast(SIDE_B, ctrB);
+            responseLength = 0;
+            break;
+        }
+
+        case UART_CMD_GET_LCD_CONTRAST: {
+            uint16_t ctrA = FIA_GetLCDContrast(SIDE_A);
+            uint16_t ctrB = FIA_GetLCDContrast(SIDE_B);
+            uartTxPayload[0] = ctrA >> 8;
+            uartTxPayload[1] = ctrA & 0xFF;
+            uartTxPayload[2] = ctrB >> 8;
+            uartTxPayload[3] = ctrB & 0xFF;
+            responseLength = 4;
             break;
         }
     }

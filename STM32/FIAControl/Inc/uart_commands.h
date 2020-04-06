@@ -32,5 +32,8 @@
 #define UART_CMD_GET_TEMPERATURES 0x40
 #define UART_CMD_GET_HUMIDITY 0x41
 
+#define UART_CMD_SET_LCD_CONTRAST 0x50
+#define UART_CMD_GET_LCD_CONTRAST 0x51
+
 // Function prototypes
 void UART_ProcessCommand(uint8_t command, uint8_t* parameters, uint8_t parameterLength);
