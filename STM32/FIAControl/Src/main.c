@@ -136,6 +136,8 @@ int main(void) {
 
     memset(bitmapBufferSideA, 0xFF, BITMAP_BUF_SIZE);
     memset(bitmapBufferSideB, 0xFF, BITMAP_BUF_SIZE);
+
+    FIA_Side_t oldDoorStatus = FIA_GetDoors();
     /* USER CODE END 2 */
 
     /* Infinite loop */
@@ -156,8 +158,8 @@ int main(void) {
             updateLCDContrastFlag = 0;
         }
 
-        if (updateBacklightBrightnessFlag) {
-            FIA_Side_t doorStatus = FIA_GetDoors();
+        FIA_Side_t doorStatus = FIA_GetDoors();
+        if (updateBacklightBrightnessFlag || (doorStatus != oldDoorStatus)) {
             // Auto-adjust brightness or set to minimum if door is open
             FIA_SetBacklightBrightness(
                 SIDE_A,
@@ -166,6 +168,7 @@ int main(void) {
                 SIDE_B,
                 (doorStatus & SIDE_B) ? 0 : FIA_CalculateBacklightBrightness(SIDE_B, FIA_GetEnvBrightness(SIDE_B)));
             updateBacklightBrightnessFlag = 0;
+            oldDoorStatus = doorStatus;
         }
 
         if (!LCD_IsTransmitActive(BUS_1)) {

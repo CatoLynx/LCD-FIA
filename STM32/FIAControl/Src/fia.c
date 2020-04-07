@@ -166,6 +166,8 @@ uint16_t FIA_CalculateBacklightBrightness(FIA_Side_t side, uint16_t envBrt) {
 void FIA_UpdateADCValues() {
     // CH1, CH2 (Env Brightness) sensor range: 0.3 ... 0.65V (ADC values 370 ... 800)
     // CH3 (Internal Temperature) sensor range: ???
+    uint16_t tmpVal = 0;
+
     for (uint8_t c = 0; c < ADC_NUM_CHANNELS; c++) {
         adcRingBuffer[adcRingBufferIndex++] = adcValues[c];
     }
@@ -183,13 +185,15 @@ void FIA_UpdateADCValues() {
 
     // 2 brightness sensors...
     for (uint8_t c = 0; c < 2; c++) {
-        envBrightness[c] = (uint16_t)mapRange(adcAverages[c], 370, 800, 0, 4095);
+        tmpVal = (uint16_t)mapRange(adcAverages[c], 370, 800, 0, 4095);
+        if (tmpVal != envBrightness[c]) {
+            envBrightness[c] = tmpVal;
+            updateBacklightBrightnessFlag = 1;
+        }
     }
 
     // ...and the internal temperature sensor
     tempSensorValues[3] = ((mapRange(adcAverages[2], 0, 4095, 0, 3.3) - TEMP_SENS_V25) / TEMP_SENS_AVG_SLOPE) + 25.0;
-
-    updateBacklightBrightnessFlag = 1;
 }
 
 void FIA_SetBacklight(uint8_t status) {
