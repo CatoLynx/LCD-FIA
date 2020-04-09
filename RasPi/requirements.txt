@@ -2,6 +2,7 @@ certifi==2019.11.28
 chardet==3.0.4
 idna==2.9
 Pillow==7.0.0
+pyDBInfoscreen==1.0.1
 pyserial==3.4
 requests==2.23.0
 spidev==3.4

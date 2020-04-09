@@ -5,34 +5,9 @@ import requests
 import time
 import traceback
 
+from db_infoscreen import DBInfoscreen
 from layout_renderer import LayoutRenderer
 from fia_control import FIA
-
-
-def load_trains(station):
-    resp = requests.get("https://dbf.finalrewind.org/{}.json".format(station))
-    data = resp.json()
-    return data['departures']
-
-def calc_real_times(trains):
-    output = []
-    for train in trains:
-        if train['scheduledDeparture']:
-            departure = datetime.datetime.strptime(train['scheduledDeparture'], "%H:%M")
-            departure += datetime.timedelta(minutes=train['delayDeparture'])
-            train['actualDeparture'] = departure.strftime("%H:%M")
-        else:
-            train['actualDeparture'] = None
-        
-        if train['scheduledArrival']:
-            departure = datetime.datetime.strptime(train['scheduledArrival'], "%H:%M")
-            departure += datetime.timedelta(minutes=train['delayArrival'])
-            train['actualArrival'] = departure.strftime("%H:%M")
-        else:
-            train['actualArrival'] = None
-        
-        output.append(train)
-    return output
 
 def get_info_long(train):
     messages = []
@@ -40,8 +15,12 @@ def get_info_long(train):
         messages.append("fällt heute aus")
     if train['platform'] != train['scheduledPlatform']:
         messages.append("heute von Gleis {}".format(train['platform']))
-    if train['delayDeparture']:
-        messages.append("heute ca. {} Minuten später".format(train['delayDeparture']))
+    delay = DBInfoscreen.round_delay(train['delayDeparture'])
+    if delay:
+        if delay > 0:
+            messages.append("heute ca. {} Minuten später".format(delay))
+        else:
+            messages.append("heute unbestimmt verspätet")
     if messages:
         return " " + "  ---  ".join(messages)
     else:
@@ -53,16 +32,6 @@ def get_info_short(train):
     elif train['platform'] != train['scheduledPlatform']:
         return "Gleis {}".format(train['platform'])
     return ""
-
-def time_sort(train):
-    now = datetime.datetime.now()
-    now_date = now.date()
-    now_time = now.time()
-    departure_time = datetime.datetime.strptime(train['actualDeparture'], "%H:%M").time()
-    departure = datetime.datetime.combine(now_date, departure_time)
-    if now_time >= datetime.time(12, 0) and departure_time < datetime.time(12, 0):
-        departure += datetime.timedelta(days=1)
-    return departure
 
 
 def main():
@@ -78,13 +47,23 @@ def main():
     
     renderer = LayoutRenderer(args.font_dir)
     
+    dbi = DBInfoscreen("dbf.finalrewind.org")
+    
     with open(args.layout, 'r', encoding='utf-8') as f:
         layout = json.load(f)
     
     while True:
         try:
-            trains = [train for train in calc_real_times(load_trains(args.station)) if train['actualDeparture']]
-            trains.sort(key=time_sort)
+            trains = [train for train in dbi.calc_real_times(dbi.get_trains(args.station)) if train['actualDeparture']]
+            trains.sort(key=dbi.time_sort)
+            
+            delay_next_1 = dbi.round_delay(trains[1]['delayDeparture'])
+            delay_next_2 = dbi.round_delay(trains[2]['delayDeparture'])
+            
+            if delay_next_1 == -1:
+                delay_next_1 = ">210"
+            if delay_next_2 == -1:
+                delay_next_2 = ">210"
             
             data = {
                 'placeholders': {
@@ -95,9 +74,9 @@ def main():
                     'via': "  -  ".join(trains[0]['via'][:2]),
                     'destination': trains[0]['destination'],
                     'next_train_1_departure': trains[1]['scheduledDeparture'],
-                    'next_train_1_delay': "+{}".format(trains[1]['delayDeparture']) if trains[1]['delayDeparture'] else "",
+                    'next_train_1_delay': "+{}".format(delay_next_1) if delay_next_1 else "",
                     'next_train_2_departure': trains[2]['scheduledDeparture'],
-                    'next_train_2_delay': "+{}".format(trains[2]['delayDeparture']) if trains[2]['delayDeparture'] else "",
+                    'next_train_2_delay': "+{}".format(delay_next_2) if delay_next_2 else "",
                     'next_train_1_train': trains[1]['train'],
                     'next_train_2_train': trains[2]['train'],
                     'next_train_1_destination': trains[1]['destination'],
