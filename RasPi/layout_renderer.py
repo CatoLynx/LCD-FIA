@@ -67,7 +67,7 @@ class LayoutRenderer:
             new_img = ImageOps.invert(new_img)
         return new_img
 
-    def render_placeholder(self, img, placeholder, value):
+    def render_placeholder(self, img, placeholder, value, render_boxes, render_content):
         x = placeholder.get('x')
         y = placeholder.get('y')
         width = placeholder.get('width')
@@ -78,7 +78,7 @@ class LayoutRenderer:
         inverted = placeholder.get('inverted')
         default = placeholder.get('default')
         
-        if p_type == 'text':
+        if render_content and p_type == 'text':
             if not value:
                 return
             font = placeholder.get('font')
@@ -86,7 +86,7 @@ class LayoutRenderer:
             align = placeholder.get('align')
             spacing = placeholder.get('spacing', 0)
             img.paste(self.render_text(width, height, pad_left, pad_top, font, size, align, inverted, spacing, value), (x, y))
-        elif p_type == 'image':
+        elif render_content and p_type == 'image':
             if not value:
                 return
             try:
@@ -105,13 +105,21 @@ class LayoutRenderer:
             fill = placeholder.get('fill')
             draw = ImageDraw.Draw(img)
             color = self.img_bg if inverted else self.img_fg
-            draw.rectangle((x, y, x+width, y+height), outline=color, fill=color if fill else None)
+            draw.rectangle((x, y, x+width-1, y+height-1), outline=color, fill=color if fill else None)
+        
+        if render_boxes:
+            draw = ImageDraw.Draw(img)
+            draw.rectangle((x, y, x+width-1, y+height-1), outline=self.img_fg)
     
-    def render(self, layout, data):
+    def render(self, layout, data, render_boxes = False, render_content = True):
         img = Image.new(self.img_mode, (layout['width'], layout['height']), color=self.img_bg)
-        for placeholder in layout['placeholders']:
-            value = data['placeholders'].get(placeholder['name'], placeholder.get('default'))
-            self.render_placeholder(img, placeholder, value)
+        if render_content:
+            for placeholder in layout['placeholders']:
+                value = data['placeholders'].get(placeholder['name'], placeholder.get('default'))
+                self.render_placeholder(img, placeholder, value, render_boxes=False, render_content=True)
+        if render_boxes:
+            for placeholder in layout['placeholders']:
+                self.render_placeholder(img, placeholder, value=None, render_boxes=True, render_content=False)
         return ImageOps.invert(img)
 
 
