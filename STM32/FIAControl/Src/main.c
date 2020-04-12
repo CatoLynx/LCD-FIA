@@ -122,17 +122,23 @@ int main(void) {
     FIA_Init();
     UART_StartRxRingBuffer();
 
-    FIA_SetBacklight(1);
-    FIA_SetHeaters(0);
-    FIA_SetHeatExchangerFan(1);
-    FIA_SetCirculationFans(2);
-    FIA_SetBacklightBallastFans(1);
+    FIA_SetLCDContrast(SIDE_A, 2200);
+    FIA_SetLCDContrast(SIDE_B, 2200);
 
     FIA_SetBacklightBrightness(SIDE_A, 0);
     FIA_SetBacklightBrightness(SIDE_B, 0);
 
-    FIA_SetLCDContrast(SIDE_A, 2200);
-    FIA_SetLCDContrast(SIDE_B, 2200);
+    FIA_SetHeaters(0);
+
+    FIA_SetBacklight(1);
+    HAL_Delay(500);
+    FIA_SetBacklightBallastFans(1);
+    HAL_Delay(500);
+    FIA_SetCirculationFans(1);
+    HAL_Delay(500);
+    FIA_SetCirculationFans(2);
+    HAL_Delay(500);
+    FIA_SetHeatExchangerFan(1);
 
     memset(bitmapBufferSideA, 0xFF, BITMAP_BUF_SIZE);
     memset(bitmapBufferSideB, 0xFF, BITMAP_BUF_SIZE);
