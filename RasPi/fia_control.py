@@ -185,52 +185,6 @@ class FIA:
         side_b = (resp[2] << 8) | resp[3]
         return side_a, side_b
     
-    def flatten_img(self, img, panel_height = None):
-        # if panel_height is given, split the image into rows of said height
-        # and flatten each row separately
-        pixels = img.load()
-        width, height = img.size
-
-        if panel_height:
-            num_rows = height // panel_height
-        else:
-            num_rows = 1
-            panel_height = height
-        
-        num_hp_w = width // self.panel_width
-        num_hp_h = panel_height // 32
-        flattened_imgs = []
-        flattened_row_width = num_hp_w * num_hp_h * self.panel_width
-        for row_index in range(num_rows):
-            y_base = row_index * panel_height
-            row_img = img.crop((0, y_base, width-1, y_base+panel_height))
-            
-            out = Image.new('L', (flattened_row_width, 32))
-            
-            x_out = out.size[0] - self.panel_width
-            for yp in range(num_hp_h):
-                if not yp % 2:
-                    r = range(num_hp_w)
-                    rotate = False
-                else:
-                    r = range(num_hp_w-1, -1, -1)
-                    rotate = True
-                
-                for xp in r:
-                    x = width - xp * self.panel_width - self.panel_width
-                    y = yp * 32
-                    if rotate:
-                        out.paste(row_img.crop((x, y, x+self.panel_width, y+32)).rotate(180), (x_out, 0))
-                    else:
-                        out.paste(row_img.crop((x, y, x+self.panel_width, y+32)), (x_out, 0))
-                    x_out -= self.panel_width
-            flattened_imgs.append(out)
-        
-        out = Image.new('L', (flattened_row_width * len(flattened_imgs), 32))
-        for i, img in enumerate(flattened_imgs):
-            out.paste(img, (flattened_row_width * i, 0))
-        return out
-    
     def img_to_array(self, img):
         pixels = img.load()
         width, height = img.size
@@ -266,8 +220,7 @@ class FIA:
             img2.paste(img, (0, 0))
             img = img2
         
-        flattened = self.flatten_img(img, self.panel_height)
-        array, width, height = self.img_to_array(flattened)
+        array, width, height = self.img_to_array(img)
         self.send_array(array)
     
     def send_gif(self, img):
