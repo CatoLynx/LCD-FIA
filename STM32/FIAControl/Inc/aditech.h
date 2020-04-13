@@ -36,16 +36,6 @@
 #define LSBFIRST 0
 #define MSBFIRST 1
 
-// How many panels are daisy-chained.
-// This assumes that first all top halves of each display
-// are chained, then all bottom halves.
-#define NUM_PANELS 5
-#define NUM_HALF_PANELS (NUM_PANELS * 2)
-#define PANEL_WIDTH 96
-#define PANEL_HEIGHT 64
-#define HALF_PANEL_NUM_BITMAP_BYTES 384
-#define NUM_PANEL_ROWS 2
-
 // Includes added control and offset bytes
 #define BACKPLANE_NUM_LCD_BYTES 120
 #define NUM_BACKPLANES 4
@@ -54,10 +44,6 @@
 // Size of the raw LCD data buffer (per LCD bus)
 #define LCD_BUF_SIZE (HALF_PANEL_NUM_LCD_BYTES * NUM_HALF_PANELS)
 
-// Size of the bitmap data buffer (*2 because there are 2 LCD buses per side)
-#define BITMAP_BUF_SIZE (HALF_PANEL_NUM_BITMAP_BYTES * NUM_HALF_PANELS * 2)
-#define BITMAP_BUF_HALF_SIZE (HALF_PANEL_NUM_BITMAP_BYTES * NUM_HALF_PANELS)
-
 // Array containing the logical order to address the backplanes in, according to datasheet
 const uint8_t BACKPLANES[NUM_BACKPLANES];
 
@@ -65,11 +51,6 @@ const uint8_t BACKPLANES[NUM_BACKPLANES];
 uint8_t curTransmittedBackplaneIndex[NUM_LCD_BUSES];
 uint8_t transmitActive[NUM_LCD_BUSES];
 uint8_t* curLCDData[NUM_LCD_BUSES];
-
-// Status variables for receiving bitmap data from the high-level controller
-uint8_t bitmapReceiveActive;
-uint8_t bitmapBufferSideA[BITMAP_BUF_SIZE];
-uint8_t bitmapBufferSideB[BITMAP_BUF_SIZE];
 
 // Function prototypes
 uint16_t LCD_ConvertBitmap(uint8_t* dst, uint8_t* src, uint8_t panelRowOffset, uint8_t ramSel);

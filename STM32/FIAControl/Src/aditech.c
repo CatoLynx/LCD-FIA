@@ -229,10 +229,3 @@ void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef* hspi) {
         LCD_TransmitCompleteCallback(BUS_4);
     }
 }
-
-void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef* hspi) {
-    if (hspi == &BITMAP_DATA_SPI) {
-        bitmapReceiveActive = 0;
-        FIA_SetStatusLED(2, 0);
-    }
-}

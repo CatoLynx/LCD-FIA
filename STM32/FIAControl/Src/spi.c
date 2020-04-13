@@ -129,7 +129,7 @@ void MX_SPI5_Init(void)
 
   hspi5.Instance = SPI5;
   hspi5.Init.Mode = SPI_MODE_SLAVE;
-  hspi5.Init.Direction = SPI_DIRECTION_2LINES_RXONLY;
+  hspi5.Init.Direction = SPI_DIRECTION_2LINES;
   hspi5.Init.DataSize = SPI_DATASIZE_8BIT;
   hspi5.Init.CLKPolarity = SPI_POLARITY_LOW;
   hspi5.Init.CLKPhase = SPI_PHASE_1EDGE;
@@ -353,25 +353,26 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef* spiHandle)
     /* SPI5 clock enable */
     __HAL_RCC_SPI5_CLK_ENABLE();
   
-    __HAL_RCC_GPIOB_CLK_ENABLE();
     __HAL_RCC_GPIOE_CLK_ENABLE();
+    __HAL_RCC_GPIOB_CLK_ENABLE();
     /**SPI5 GPIO Configuration    
+    PE5     ------> SPI5_MISO
     PB0     ------> SPI5_SCK
     PE14     ------> SPI5_MOSI 
     */
+    GPIO_InitStruct.Pin = BITMAP_MISO_Pin|BITMAP_MOSI_Pin;
+    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+    GPIO_InitStruct.Alternate = GPIO_AF6_SPI5;
+    HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
+
     GPIO_InitStruct.Pin = BITMAP_SCK_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
     GPIO_InitStruct.Alternate = GPIO_AF6_SPI5;
     HAL_GPIO_Init(BITMAP_SCK_GPIO_Port, &GPIO_InitStruct);
-
-    GPIO_InitStruct.Pin = BITMAP_MOSI_Pin;
-    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-    GPIO_InitStruct.Alternate = GPIO_AF6_SPI5;
-    HAL_GPIO_Init(BITMAP_MOSI_GPIO_Port, &GPIO_InitStruct);
 
     /* SPI5 DMA Init */
     /* SPI5_RX Init */
@@ -496,12 +497,13 @@ void HAL_SPI_MspDeInit(SPI_HandleTypeDef* spiHandle)
     __HAL_RCC_SPI5_CLK_DISABLE();
   
     /**SPI5 GPIO Configuration    
+    PE5     ------> SPI5_MISO
     PB0     ------> SPI5_SCK
     PE14     ------> SPI5_MOSI 
     */
-    HAL_GPIO_DeInit(BITMAP_SCK_GPIO_Port, BITMAP_SCK_Pin);
+    HAL_GPIO_DeInit(GPIOE, BITMAP_MISO_Pin|BITMAP_MOSI_Pin);
 
-    HAL_GPIO_DeInit(BITMAP_MOSI_GPIO_Port, BITMAP_MOSI_Pin);
+    HAL_GPIO_DeInit(BITMAP_SCK_GPIO_Port, BITMAP_SCK_Pin);
 
     /* SPI5 DMA DeInit */
     HAL_DMA_DeInit(spiHandle->hdmarx);

@@ -46,6 +46,19 @@
 // LCD related definitions
 #define NUM_LCD_BUSES 4
 
+// How many panels are daisy-chained.
+// This assumes that first all top halves of each display
+// are chained, then all bottom halves.
+#define NUM_PANELS 5
+#define NUM_HALF_PANELS (NUM_PANELS * 2)
+#define PANEL_WIDTH 96
+#define PANEL_HEIGHT 64
+#define HALF_PANEL_NUM_BITMAP_BYTES 384
+#define NUM_PANEL_ROWS 2
+
+// Size of the bitmap data buffer (*2 because there are 2 LCD buses per side)
+#define BITMAP_BUF_SIZE (HALF_PANEL_NUM_BITMAP_BYTES * NUM_HALF_PANELS * 2)
+
 // Sensor related definitions
 #define ADC_AVG_COUNT 200
 #define TEMP_SENS_V25 0.76         // V
@@ -70,12 +83,21 @@ uint8_t updateBacklightBrightnessFlag;
 uint8_t firstADCReadFlag;
 uint8_t firstADCAverageFlag;
 
+// Variables for receiving bitmap data from the high-level controller
+uint8_t bitmapReceiveActive;
+uint8_t bitmapBufferSideA[BITMAP_BUF_SIZE];
+uint8_t bitmapBufferSideB[BITMAP_BUF_SIZE];
+
 // Variables for temperature sensors
 double tempSensorValues[4];
 
 // Function prototypes
 void FIA_Init(void);
 void FIA_InitI2CDACs(void);
+void FIA_MainLoop(void);
+void FIA_ReceiveBitmapData(void);
+void FIA_ReceiveBitmapData(void);
+void FIA_AbortBitmapReceive(void);
 void FIA_SetBacklightBrightness(FIA_Side_t side, uint16_t value);
 void FIA_UpdateLCDContrast();
 void FIA_SetLCDContrast(FIA_Side_t side, uint16_t value);

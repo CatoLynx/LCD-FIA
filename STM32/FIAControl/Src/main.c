@@ -31,12 +31,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include <string.h>
-
-#include "aditech.h"
-#include "ds18b20.h"
 #include "fia.h"
-#include "uart_protocol.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -56,14 +51,7 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-// LCD Data buffers per LCD bus
-uint8_t lcdData1[LCD_BUF_SIZE];
-uint8_t lcdData2[LCD_BUF_SIZE];
-uint8_t lcdData3[LCD_BUF_SIZE];
-uint8_t lcdData4[LCD_BUF_SIZE];
 
-// Status variables for selected RAM per LCD bus
-uint8_t currentRAM[NUM_LCD_BUSES];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -120,30 +108,6 @@ int main(void) {
     MX_TIM4_Init();
     /* USER CODE BEGIN 2 */
     FIA_Init();
-    UART_StartRxRingBuffer();
-
-    FIA_SetLCDContrast(SIDE_A, 2200);
-    FIA_SetLCDContrast(SIDE_B, 2200);
-
-    FIA_SetBacklightBrightness(SIDE_A, 0);
-    FIA_SetBacklightBrightness(SIDE_B, 0);
-
-    FIA_SetHeaters(0);
-
-    FIA_SetBacklight(1);
-    HAL_Delay(500);
-    FIA_SetBacklightBallastFans(1);
-    HAL_Delay(500);
-    FIA_SetCirculationFans(1);
-    HAL_Delay(500);
-    FIA_SetCirculationFans(2);
-    HAL_Delay(500);
-    FIA_SetHeatExchangerFan(1);
-
-    memset(bitmapBufferSideA, 0xFF, BITMAP_BUF_SIZE);
-    memset(bitmapBufferSideB, 0xFF, BITMAP_BUF_SIZE);
-
-    FIA_Side_t oldDoorStatus = FIA_GetDoors();
     /* USER CODE END 2 */
 
     /* Infinite loop */
@@ -152,67 +116,7 @@ int main(void) {
         /* USER CODE END WHILE */
 
         /* USER CODE BEGIN 3 */
-        UART_HandleProtocol();
-
-        if (!bitmapReceiveActive) {
-            HAL_SPI_Receive_DMA(&BITMAP_DATA_SPI, bitmapBufferSideA, BITMAP_BUF_SIZE);
-            FIA_SetStatusLED(2, 1);
-        }
-
-        if (updateLCDContrastFlag) {
-            FIA_UpdateLCDContrast();
-            updateLCDContrastFlag = 0;
-        }
-
-        FIA_Side_t doorStatus = FIA_GetDoors();
-        if (updateBacklightBrightnessFlag || (doorStatus != oldDoorStatus)) {
-            // Auto-adjust brightness or set to minimum if door is open
-            FIA_SetBacklightBrightness(
-                SIDE_A,
-                (doorStatus & SIDE_A) ? 0 : FIA_CalculateBacklightBrightness(SIDE_A, FIA_GetEnvBrightness(SIDE_A)));
-            FIA_SetBacklightBrightness(
-                SIDE_B,
-                (doorStatus & SIDE_B) ? 0 : FIA_CalculateBacklightBrightness(SIDE_B, FIA_GetEnvBrightness(SIDE_B)));
-            updateBacklightBrightnessFlag = 0;
-            oldDoorStatus = doorStatus;
-        }
-
-        if (!LCD_IsTransmitActive(BUS_1)) {
-            LCD_ConvertBitmap(lcdData1, bitmapBufferSideA, 0, currentRAM[BUS_1]);
-            LCD_TransmitBitmap(lcdData1, NUM_HALF_PANELS, BUS_1);
-            if (currentRAM[BUS_1] == RAM1) {
-                currentRAM[BUS_1] = RAM2;
-            } else {
-                currentRAM[BUS_1] = RAM1;
-            }
-        }
-        if (!LCD_IsTransmitActive(BUS_2)) {
-            LCD_ConvertBitmap(lcdData2, bitmapBufferSideA, 1, currentRAM[BUS_2]);
-            LCD_TransmitBitmap(lcdData2, NUM_HALF_PANELS, BUS_2);
-            if (currentRAM[BUS_2] == RAM1) {
-                currentRAM[BUS_2] = RAM2;
-            } else {
-                currentRAM[BUS_2] = RAM1;
-            }
-        }
-        if (!LCD_IsTransmitActive(BUS_3)) {
-            LCD_ConvertBitmap(lcdData3, bitmapBufferSideA, 0, currentRAM[BUS_3]);
-            LCD_TransmitBitmap(lcdData3, NUM_HALF_PANELS, BUS_3);
-            if (currentRAM[BUS_3] == RAM1) {
-                currentRAM[BUS_3] = RAM2;
-            } else {
-                currentRAM[BUS_3] = RAM1;
-            }
-        }
-        if (!LCD_IsTransmitActive(BUS_4)) {
-            LCD_ConvertBitmap(lcdData4, bitmapBufferSideA, 1, currentRAM[BUS_4]);
-            LCD_TransmitBitmap(lcdData4, NUM_HALF_PANELS, BUS_4);
-            if (currentRAM[BUS_4] == RAM1) {
-                currentRAM[BUS_4] = RAM2;
-            } else {
-                currentRAM[BUS_4] = RAM1;
-            }
-        }
+        FIA_MainLoop();
     }
     /* USER CODE END 3 */
 }

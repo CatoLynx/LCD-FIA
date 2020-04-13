@@ -1,12 +1,29 @@
 #include "fia.h"
+#include "aditech.h"
 #include "ds18b20.h"
 #include "sht21.h"
+#include "spi.h"
 #include "stm32f4xx_hal.h"
+#include "uart_protocol.h"
 #include "util.h"
+#include <string.h>
+
+extern DMA_HandleTypeDef hdma_spi5_rx;
 
 int16_t backlightBaseBrightness[2] = {2048, 2048};
 uint16_t lcdContrast[2] = {2048, 2048};
 uint8_t firstADCReadFlag = 1;
+
+// LCD Data buffers per LCD bus
+uint8_t lcdData1[LCD_BUF_SIZE];
+uint8_t lcdData2[LCD_BUF_SIZE];
+uint8_t lcdData3[LCD_BUF_SIZE];
+uint8_t lcdData4[LCD_BUF_SIZE];
+
+// Status variables for selected RAM per LCD bus
+uint8_t currentRAM[NUM_LCD_BUSES];
+
+FIA_Side_t oldDoorStatus = SIDE_NONE;
 
 void FIA_Init(void) {
     HAL_TIM_Base_Start(&DELAY_US_TIMER);
@@ -22,14 +39,30 @@ void FIA_Init(void) {
 
     FIA_InitI2CDACs();
 
-    FIA_SetBacklight(0);
-    FIA_SetHeaters(0);
-    FIA_SetCirculationFans(0);
-    FIA_SetHeatExchangerFan(0);
-    FIA_SetBacklightBallastFans(0);
-
     FIA_SetStatusLED(1, 0);
     FIA_SetStatusLED(2, 0);
+
+    UART_StartRxRingBuffer();
+
+    memset(bitmapBufferSideA, 0xFF, BITMAP_BUF_SIZE);
+    memset(bitmapBufferSideB, 0xFF, BITMAP_BUF_SIZE);
+
+    FIA_SetLCDContrast(SIDE_A, 2200);
+    FIA_SetLCDContrast(SIDE_B, 2200);
+
+    FIA_SetBacklightBrightness(SIDE_A, 0);
+    FIA_SetBacklightBrightness(SIDE_B, 0);
+
+    FIA_SetHeaters(0);
+    FIA_SetBacklight(1);
+    HAL_Delay(500);
+    FIA_SetBacklightBallastFans(1);
+    HAL_Delay(500);
+    FIA_SetCirculationFans(1);
+    HAL_Delay(500);
+    FIA_SetCirculationFans(2);
+    HAL_Delay(500);
+    FIA_SetHeatExchangerFan(1);
 }
 
 void FIA_InitI2CDACs(void) {
@@ -39,6 +72,82 @@ void FIA_InitI2CDACs(void) {
     buf[2] = 0x00;
     HAL_I2C_Master_Transmit(&PERIPHERALS_I2C, I2C_ADDR_DAC_BRIGHTNESS_A, buf, 3, I2C_TIMEOUT);
     HAL_I2C_Master_Transmit(&PERIPHERALS_I2C, I2C_ADDR_DAC_BRIGHTNESS_B, buf, 3, I2C_TIMEOUT);
+}
+
+void FIA_MainLoop(void) {
+    UART_HandleProtocol();
+
+    if (!bitmapReceiveActive) {
+        FIA_ReceiveBitmapData();
+    }
+
+    if (updateLCDContrastFlag) {
+        FIA_UpdateLCDContrast();
+        updateLCDContrastFlag = 0;
+    }
+
+    FIA_Side_t doorStatus = FIA_GetDoors();
+    if (updateBacklightBrightnessFlag || (doorStatus != oldDoorStatus)) {
+        // Auto-adjust brightness or set to minimum if door is open
+        FIA_SetBacklightBrightness(
+            SIDE_A, (doorStatus & SIDE_A) ? 0 : FIA_CalculateBacklightBrightness(SIDE_A, FIA_GetEnvBrightness(SIDE_A)));
+        FIA_SetBacklightBrightness(
+            SIDE_B, (doorStatus & SIDE_B) ? 0 : FIA_CalculateBacklightBrightness(SIDE_B, FIA_GetEnvBrightness(SIDE_B)));
+        updateBacklightBrightnessFlag = 0;
+        oldDoorStatus = doorStatus;
+    }
+
+    if (!LCD_IsTransmitActive(BUS_1)) {
+        LCD_ConvertBitmap(lcdData1, bitmapBufferSideA, 0, currentRAM[BUS_1]);
+        LCD_TransmitBitmap(lcdData1, NUM_HALF_PANELS, BUS_1);
+        if (currentRAM[BUS_1] == RAM1) {
+            currentRAM[BUS_1] = RAM2;
+        } else {
+            currentRAM[BUS_1] = RAM1;
+        }
+    }
+    if (!LCD_IsTransmitActive(BUS_2)) {
+        LCD_ConvertBitmap(lcdData2, bitmapBufferSideA, 1, currentRAM[BUS_2]);
+        LCD_TransmitBitmap(lcdData2, NUM_HALF_PANELS, BUS_2);
+        if (currentRAM[BUS_2] == RAM1) {
+            currentRAM[BUS_2] = RAM2;
+        } else {
+            currentRAM[BUS_2] = RAM1;
+        }
+    }
+    if (!LCD_IsTransmitActive(BUS_3)) {
+        LCD_ConvertBitmap(lcdData3, bitmapBufferSideA, 0, currentRAM[BUS_3]);
+        LCD_TransmitBitmap(lcdData3, NUM_HALF_PANELS, BUS_3);
+        if (currentRAM[BUS_3] == RAM1) {
+            currentRAM[BUS_3] = RAM2;
+        } else {
+            currentRAM[BUS_3] = RAM1;
+        }
+    }
+    if (!LCD_IsTransmitActive(BUS_4)) {
+        LCD_ConvertBitmap(lcdData4, bitmapBufferSideA, 1, currentRAM[BUS_4]);
+        LCD_TransmitBitmap(lcdData4, NUM_HALF_PANELS, BUS_4);
+        if (currentRAM[BUS_4] == RAM1) {
+            currentRAM[BUS_4] = RAM2;
+        } else {
+            currentRAM[BUS_4] = RAM1;
+        }
+    }
+}
+
+void FIA_ReceiveBitmapData(void) {
+    HAL_SPI_Receive_DMA(&BITMAP_DATA_SPI, bitmapBufferSideA, BITMAP_BUF_SIZE);
+    FIA_SetStatusLED(2, 1);
+    bitmapReceiveActive = 1;
+}
+
+void FIA_AbortBitmapReceive(void) {
+    // TODO: Fix abort on CS deassert
+    if (1 || !bitmapReceiveActive)
+        return;
+    HAL_DMA_Abort(&hdma_spi5_rx);
+    FIA_SetStatusLED(2, 0);
+    bitmapReceiveActive = 0;
 }
 
 void FIA_SetBacklightBrightness(FIA_Side_t side, uint16_t value) {
@@ -312,4 +421,11 @@ double FIA_GetTemperature(FIA_Temp_Sensor_t sensor) {
 double FIA_GetHumidity() {
     // Get the relative humidity of the inside air (in %)
     return SHT21_GetHumidity();
+}
+
+void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef* hspi) {
+    if (hspi == &BITMAP_DATA_SPI) {
+        bitmapReceiveActive = 0;
+        FIA_SetStatusLED(2, 0);
+    }
 }
