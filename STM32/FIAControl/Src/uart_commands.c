@@ -64,17 +64,6 @@ void UART_ProcessCommand(uint8_t command, uint8_t* parameters, uint8_t parameter
             break;
         }
 
-        case UART_CMD_GET_ENV_BRIGHTNESS: {
-            uint16_t brtA = FIA_GetEnvBrightness(SIDE_A);
-            uint16_t brtB = FIA_GetEnvBrightness(SIDE_B);
-            uartTxPayload[0] = brtA >> 8;
-            uartTxPayload[1] = brtA & 0xFF;
-            uartTxPayload[2] = brtB >> 8;
-            uartTxPayload[3] = brtB & 0xFF;
-            responseLength = 4;
-            break;
-        }
-
         case UART_CMD_SET_HEATERS_STATE: {
             FIA_SetHeaters(parameters[0]);
             responseLength = 0;
@@ -151,6 +140,17 @@ void UART_ProcessCommand(uint8_t command, uint8_t* parameters, uint8_t parameter
             uartTxPayload[0] = humidity >> 8;
             uartTxPayload[1] = humidity & 0xFF;
             responseLength = 2;
+            break;
+        }
+
+        case UART_CMD_GET_ENV_BRIGHTNESS: {
+            uint16_t brtA = FIA_GetEnvBrightness(SIDE_A);
+            uint16_t brtB = FIA_GetEnvBrightness(SIDE_B);
+            uartTxPayload[0] = brtA >> 8;
+            uartTxPayload[1] = brtA & 0xFF;
+            uartTxPayload[2] = brtB >> 8;
+            uartTxPayload[3] = brtB & 0xFF;
+            responseLength = 4;
             break;
         }
 
