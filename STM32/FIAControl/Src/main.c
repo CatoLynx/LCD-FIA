@@ -178,7 +178,7 @@ int main(void) {
         }
 
         if (!LCD_IsTransmitActive(BUS_1)) {
-            LCD_ConvertBitmap(lcdData1, bitmapBufferSideA, NUM_HALF_PANELS, currentRAM[BUS_1]);
+            LCD_ConvertBitmap(lcdData1, bitmapBufferSideA, 0, currentRAM[BUS_1]);
             LCD_TransmitBitmap(lcdData1, NUM_HALF_PANELS, BUS_1);
             if (currentRAM[BUS_1] == RAM1) {
                 currentRAM[BUS_1] = RAM2;
@@ -187,7 +187,7 @@ int main(void) {
             }
         }
         if (!LCD_IsTransmitActive(BUS_2)) {
-            LCD_ConvertBitmap(lcdData2, &bitmapBufferSideA[BITMAP_BUF_HALF_SIZE], NUM_HALF_PANELS, currentRAM[BUS_2]);
+            LCD_ConvertBitmap(lcdData2, bitmapBufferSideA, 1, currentRAM[BUS_2]);
             LCD_TransmitBitmap(lcdData2, NUM_HALF_PANELS, BUS_2);
             if (currentRAM[BUS_2] == RAM1) {
                 currentRAM[BUS_2] = RAM2;
@@ -196,7 +196,7 @@ int main(void) {
             }
         }
         if (!LCD_IsTransmitActive(BUS_3)) {
-            LCD_ConvertBitmap(lcdData3, bitmapBufferSideA, NUM_HALF_PANELS, currentRAM[BUS_3]);
+            LCD_ConvertBitmap(lcdData3, bitmapBufferSideA, 0, currentRAM[BUS_3]);
             LCD_TransmitBitmap(lcdData3, NUM_HALF_PANELS, BUS_3);
             if (currentRAM[BUS_3] == RAM1) {
                 currentRAM[BUS_3] = RAM2;
@@ -205,7 +205,7 @@ int main(void) {
             }
         }
         if (!LCD_IsTransmitActive(BUS_4)) {
-            LCD_ConvertBitmap(lcdData4, &bitmapBufferSideA[BITMAP_BUF_HALF_SIZE], NUM_HALF_PANELS, currentRAM[BUS_4]);
+            LCD_ConvertBitmap(lcdData4, bitmapBufferSideA, 1, currentRAM[BUS_4]);
             LCD_TransmitBitmap(lcdData4, NUM_HALF_PANELS, BUS_4);
             if (currentRAM[BUS_4] == RAM1) {
                 currentRAM[BUS_4] = RAM2;

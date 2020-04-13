@@ -32,16 +32,52 @@ uint8_t LCD_GetBackplaneIndex(uint8_t backplane) {
     return 0;
 }
 
-uint8_t LCD_GetBitmapByte(uint8_t* data, uint8_t col, uint8_t backplane) {
-    uint8_t offset = LCD_GetBackplaneIndex(backplane);
-    return data[col * NUM_BACKPLANES + offset];
+uint8_t LCD_GetBitmapByte(uint8_t* data, uint8_t panelRowOffset, uint8_t halfPanelIndex, uint8_t col,
+                           uint8_t backplane) {
+    // Look up the right byte from the bitmap data buffer specified by the parameters.
+    // This assumes the LCD panels are wired in a U-loop such that all top half panels
+    // are connected from left to right, then all bottom half panels from right to left.
+
+    uint8_t bplOffset = LCD_GetBackplaneIndex(backplane);
+    uint16_t baseIndex;
+    uint16_t index;
+    uint8_t halfPanelOffset;
+
+    if (halfPanelIndex >= NUM_PANELS) {
+        // We're in the top half of the loop.
+        // Half panels are indexed from left to right and bitmaps are not rotated.
+
+        // Calculate the internal half panel index (to account for wiring style)
+        halfPanelOffset = halfPanelIndex - 5;
+
+        // First, calculate the base offset where the 4 bytes for the indexed column are located
+        baseIndex = (halfPanelOffset * PANEL_WIDTH * NUM_PANEL_ROWS * PANEL_HEIGHT / 8) +
+                    (col * NUM_PANEL_ROWS * PANEL_HEIGHT / 8) + (panelRowOffset * PANEL_HEIGHT / 8);
+        index = baseIndex + bplOffset;
+        return data[index];
+    } else {
+        // We're in the bottom half of the loop.
+        // Half panels are indexed from right to left and half panels are rotated 180 degrees.
+
+        // Calculate the internal half panel index (to account for wiring style)
+        halfPanelOffset = 4 - halfPanelIndex;
+
+        // First, calculate the base offset where the 4 bytes for the indexed column are located
+        // Since half panels are rotated 180 degrees, backplane 0 is at the bottom.
+        // Thus, we add the appropriate amount at the end to jump from panel top to panel bottom.
+        baseIndex = (halfPanelOffset * PANEL_WIDTH * NUM_PANEL_ROWS * PANEL_HEIGHT / 8) +
+                    ((PANEL_WIDTH - (col + 1)) * NUM_PANEL_ROWS * PANEL_HEIGHT / 8) +
+                    (panelRowOffset * PANEL_HEIGHT / 8) + (NUM_BACKPLANES * 2) - 1;
+        index = baseIndex - bplOffset;
+        return reverseByte(data[index]);
+    }
 }
 
-uint16_t LCD_ConvertBitmap(uint8_t* dst, uint8_t* src, uint8_t numHalfPanels, uint8_t ramSel) {
-    // Convert "normal" bitmap data to the Aditech LCD format, in half-panel blocks
+uint16_t LCD_ConvertBitmap(uint8_t* dst, uint8_t* src, uint8_t panelRowOffset, uint8_t ramSel) {
+    // Convert bitmap data to the Aditech LCD format, in half-panel blocks
     // dst: Destination buffer for LCD data. Needs to be 96 bytes per half panel larger than src!
-    // src: Source buffer with bitmap data
-    // numHalfPanels: Number of half-panel blocks in the source data
+    // src: Source buffer with bitmap data, column major, top byte first
+    // panelRowOffset: In case multiple rows of LCD panels are present, specify vertical offset in panel heights
     // ramSel: Which RAM the data should be written to (RAM1 / RAM2)
     // Returns: Length of destination data
 
@@ -50,7 +86,6 @@ uint16_t LCD_ConvertBitmap(uint8_t* dst, uint8_t* src, uint8_t numHalfPanels, ui
     uint8_t ctrl;
     uint8_t curBitmapByte;
     uint8_t halfByteOffset;
-    uint16_t srcOffset;
     uint16_t dstAddr = 0;
 
     // Output format: The 4 backplane data streams, sequentially
@@ -58,12 +93,10 @@ uint16_t LCD_ConvertBitmap(uint8_t* dst, uint8_t* src, uint8_t numHalfPanels, ui
         backplane = BACKPLANES[bplIdx];
 
         // Iterate over each half-panel block
-        for (uint8_t halfPanelIndex = 0; halfPanelIndex < numHalfPanels; halfPanelIndex++) {
-            srcOffset = halfPanelIndex * HALF_PANEL_NUM_BITMAP_BYTES;
-
+        for (uint8_t halfPanelIndex = 0; halfPanelIndex < NUM_HALF_PANELS; halfPanelIndex++) {
             // Iterate over columns
             col = 0;
-            while (col <= PANEL_WIDTH - 1) {
+            while (col < PANEL_WIDTH) {
                 if (col == 10 || col == 34 || col == 58 || col == 82) {
                     halfByteOffset = 1;
                 } else {
@@ -74,17 +107,23 @@ uint16_t LCD_ConvertBitmap(uint8_t* dst, uint8_t* src, uint8_t numHalfPanels, ui
                 for (uint8_t i = 0; i < 5; i++) {
                     if (halfByteOffset) {
                         if (LCD_GetEndian(backplane) == LSBFIRST) {
-                            curBitmapByte = (reverseByte(LCD_GetBitmapByte(src + srcOffset, col - 1, backplane)) << 4) |
-                                            (reverseByte(LCD_GetBitmapByte(src + srcOffset, col, backplane)) >> 4);
+                            curBitmapByte =
+                                (reverseByte(
+                                     LCD_GetBitmapByte(src, panelRowOffset, halfPanelIndex, col - 1, backplane))
+                                 << 4) |
+                                (reverseByte(LCD_GetBitmapByte(src, panelRowOffset, halfPanelIndex, col, backplane)) >>
+                                 4);
                         } else {
-                            curBitmapByte = (LCD_GetBitmapByte(src + srcOffset, col - 1, backplane) << 4) |
-                                            (LCD_GetBitmapByte(src + srcOffset, col, backplane) >> 4);
+                            curBitmapByte =
+                                (LCD_GetBitmapByte(src, panelRowOffset, halfPanelIndex, col - 1, backplane) << 4) |
+                                (LCD_GetBitmapByte(src, panelRowOffset, halfPanelIndex, col, backplane) >> 4);
                         }
                     } else {
                         if (LCD_GetEndian(backplane) == LSBFIRST) {
-                            curBitmapByte = reverseByte(LCD_GetBitmapByte(src + srcOffset, col, backplane));
+                            curBitmapByte =
+                                reverseByte(LCD_GetBitmapByte(src, panelRowOffset, halfPanelIndex, col, backplane));
                         } else {
-                            curBitmapByte = LCD_GetBitmapByte(src + srcOffset, col, backplane);
+                            curBitmapByte = LCD_GetBitmapByte(src, panelRowOffset, halfPanelIndex, col, backplane);
                         }
                     }
 

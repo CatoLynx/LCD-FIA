@@ -44,6 +44,7 @@
 #define PANEL_WIDTH 96
 #define PANEL_HEIGHT 64
 #define HALF_PANEL_NUM_BITMAP_BYTES 384
+#define NUM_PANEL_ROWS 2
 
 // Includes added control and offset bytes
 #define BACKPLANE_NUM_LCD_BYTES 120
@@ -71,6 +72,6 @@ uint8_t bitmapBufferSideA[BITMAP_BUF_SIZE];
 uint8_t bitmapBufferSideB[BITMAP_BUF_SIZE];
 
 // Function prototypes
-uint16_t LCD_ConvertBitmap(uint8_t* dst, uint8_t* src, uint8_t numHalfPanels, uint8_t ramSel);
+uint16_t LCD_ConvertBitmap(uint8_t* dst, uint8_t* src, uint8_t panelRowOffset, uint8_t ramSel);
 uint8_t LCD_IsTransmitActive(FIA_LCD_Bus_t row);
 uint8_t LCD_TransmitBitmap(uint8_t* data, uint8_t numHalfPanels, FIA_LCD_Bus_t row);
