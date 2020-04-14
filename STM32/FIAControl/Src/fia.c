@@ -8,8 +8,6 @@
 #include "util.h"
 #include <string.h>
 
-extern DMA_HandleTypeDef hdma_spi5_rx;
-
 int16_t backlightBaseBrightness[2] = {2048, 2048};
 uint16_t lcdContrast[2] = {2048, 2048};
 uint8_t firstADCReadFlag = 1;
@@ -77,10 +75,6 @@ void FIA_InitI2CDACs(void) {
 void FIA_MainLoop(void) {
     UART_HandleProtocol();
 
-    if (!bitmapReceiveActive) {
-        FIA_ReceiveBitmapData();
-    }
-
     if (updateLCDContrastFlag) {
         FIA_UpdateLCDContrast();
         updateLCDContrastFlag = 0;
@@ -135,19 +129,21 @@ void FIA_MainLoop(void) {
     }
 }
 
-void FIA_ReceiveBitmapData(void) {
-    HAL_SPI_Receive_DMA(&BITMAP_DATA_SPI, bitmapBufferSideA, BITMAP_BUF_SIZE);
-    FIA_SetStatusLED(2, 1);
-    bitmapReceiveActive = 1;
+void FIA_StartBitmapReceive(void) {
+    if (HAL_SPI_Receive_DMA(&BITMAP_DATA_SPI, bitmapBufferSideA, BITMAP_BUF_SIZE) == HAL_OK) {
+        FIA_SetStatusLED(2, 1);
+        bitmapReceiveActive = 1;
+    }
 }
 
 void FIA_AbortBitmapReceive(void) {
-    // TODO: Fix abort on CS deassert
-    if (1 || !bitmapReceiveActive)
+    if (!bitmapReceiveActive)
         return;
-    HAL_DMA_Abort(&hdma_spi5_rx);
-    FIA_SetStatusLED(2, 0);
-    bitmapReceiveActive = 0;
+    if (HAL_SPI_Abort(&BITMAP_DATA_SPI) == HAL_OK) {
+        FIA_SetStatusLED(2, 0);
+        FIA_SetStatusLED(1, 0);
+        bitmapReceiveActive = 0;
+    }
 }
 
 void FIA_SetBacklightBrightness(FIA_Side_t side, uint16_t value) {
@@ -427,5 +423,6 @@ void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef* hspi) {
     if (hspi == &BITMAP_DATA_SPI) {
         bitmapReceiveActive = 0;
         FIA_SetStatusLED(2, 0);
+        FIA_SetStatusLED(1, 1);
     }
 }
