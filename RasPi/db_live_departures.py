@@ -42,8 +42,6 @@ def main():
     args = parser.parse_args()
 
     fia = FIA("/dev/ttyAMA1", (3, 0))
-    fia.mcu_reset()
-    time.sleep(3)
     
     renderer = LayoutRenderer(args.font_dir)
     
