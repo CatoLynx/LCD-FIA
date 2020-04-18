@@ -57,17 +57,54 @@
 #define NUM_PANEL_ROWS 2
 
 // Size of the bitmap data buffer (*2 because there are 2 LCD buses per side)
-#define BITMAP_BUF_SIZE (HALF_PANEL_NUM_BITMAP_BYTES * NUM_HALF_PANELS * 2)
+#define BITMAP_BUF_SIZE (HALF_PANEL_NUM_BITMAP_BYTES * NUM_HALF_PANELS * NUM_PANEL_ROWS)
+
+// Bitmap and scroll buffer related definitions
+#define MAX_SCROLL_BUFFERS 20
+#define SCROLL_BUFFER_ID_MASK 0x80
+#define SCROLL_BUFFER_ERR_COUNT 0x41
+#define SCROLL_BUFFER_ERR_SIZE 0x42
 
 // Sensor related definitions
 #define ADC_AVG_COUNT 200
 #define TEMP_SENS_V25 0.76         // V
 #define TEMP_SENS_AVG_SLOPE 0.0025 // V/°C
 
+// Temperature regulation
+#define BL_BALLAST_FANS_ON_TEMP 40
+#define BL_BALLAST_FANS_OFF_TEMP 35
+#define CIRCULATION_FANS_HALF_TEMP 40
+#define CIRCULATION_FANS_FULL_TEMP 45
+#define CIRCULATION_FANS_OFF_TEMP 35
+#define CIRCULATION_FANS_BL_BALLAST_ON_TEMP 45
+#define CIRCULATION_FANS_BL_BALLAST_OFF_TEMP 40
+#define HEAT_EXCHANGER_FAN_ON_TEMP 45
+#define HEAT_EXCHANGER_FAN_OFF_TEMP 35
+#define HEATERS_HALF_TEMP 15
+#define HEATERS_FULL_TEMP 10
+#define HEATERS_OFF_TEMP 20
+#define HEATERS_HALF_HUMIDITY 45
+#define HEATERS_FULL_HUMIDITY 50
+#define HEATERS_OFF_HUMIDITY 35
+#define HEATERS_CUTOFF_TEMP 35
+
 // Type definitions
 typedef enum FIA_Side { SIDE_NONE = 0, SIDE_A = 1, SIDE_B = 2, SIDE_BOTH = 3 } FIA_Side_t;
 typedef enum FIA_LCD_Bus { BUS_1 = 0, BUS_2 = 1, BUS_3 = 2, BUS_4 = 3 } FIA_LCD_Bus_t;
-typedef enum FIA_Temp_Sensor { EXT_1 = 0, EXT_2 = 1, BOARD = 2, MCU = 3 } FIA_Temp_Sensor_t;
+typedef enum FIA_Temp_Sensor { BL_BALL = 0, AIRFLOW = 1, BOARD = 2, MCU = 3 } FIA_Temp_Sensor_t;
+
+typedef struct FIA_Scroll_Buffer {
+    uint8_t occupied;
+    FIA_Side_t side;
+    uint16_t dispX;
+    uint16_t dispY;
+    uint16_t dispW;
+    uint16_t dispH;
+    uint16_t intW;
+    uint16_t intH;
+    size_t bufSize;
+    uint8_t* buf;
+} FIA_Scroll_Buffer_t;
 
 // Variables for brightness sensors
 uint32_t adcRingBufferIndex;
@@ -84,12 +121,23 @@ uint8_t firstADCReadFlag;
 uint8_t firstADCAverageFlag;
 
 // Variables for receiving bitmap data from the high-level controller
-uint8_t bitmapReceiveActive;
-uint8_t bitmapBufferSideA[BITMAP_BUF_SIZE];
-uint8_t bitmapBufferSideB[BITMAP_BUF_SIZE];
+uint8_t FIA_bitmapReceiveActive;
+uint8_t FIA_staticBufferSideA[BITMAP_BUF_SIZE];
+uint8_t FIA_staticBufferSideB[BITMAP_BUF_SIZE];
+uint8_t* FIA_bitmapRxBuf;
+uint8_t FIA_bitmapRxBoth;
+uint16_t FIA_bitmapRxLen;
+
+// Variables for scroll buffers
+FIA_Scroll_Buffer_t FIA_scrollBuffers[MAX_SCROLL_BUFFERS];
+uint8_t FIA_scrollBufferCount;
+int8_t FIA_nextFreeScrollBufferIndex;
 
 // Variables for temperature sensors
-double tempSensorValues[4];
+double FIA_tempSensorValues[4];
+uint8_t FIA_circulationFansOverrideBLBallast;
+uint8_t FIA_circulationFansOverrideHeatersTemp;
+uint8_t FIA_circulationFansOverrideHeatersHumidity;
 
 // Function prototypes
 void FIA_Init(void);
@@ -123,3 +171,9 @@ void FIA_StartExtTempSensorConv(void);
 void FIA_ReadTempSensors(void);
 double FIA_GetTemperature(FIA_Temp_Sensor_t sensor);
 double FIA_GetHumidity();
+uint8_t FIA_CreateScrollBuffer(FIA_Side_t side, uint16_t dispX, uint16_t dispY, uint16_t dispW, uint16_t dispH,
+                               uint16_t intW, uint16_t intH);
+uint8_t FIA_DeleteScrollBuffer(uint8_t id);
+void FIA_UpdateNextFreeScrollBufferIndex(void);
+uint8_t FIA_SetBitmapDestinationBuffer(uint8_t id);
+void FIA_RegulateTempAndHumidity(void);

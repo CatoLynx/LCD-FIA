@@ -93,7 +93,7 @@ void NMI_Handler(void) {
  */
 void HardFault_Handler(void) {
     /* USER CODE BEGIN HardFault_IRQn 0 */
-
+    NVIC_SystemReset();
     /* USER CODE END HardFault_IRQn 0 */
     while (1) {
         /* USER CODE BEGIN W1_HardFault_IRQn 0 */
@@ -262,6 +262,7 @@ void TIM4_IRQHandler(void) {
     /* USER CODE BEGIN TIM4_IRQn 0 */
     FIA_ReadTempSensors();
     FIA_StartExtTempSensorConv();
+    FIA_RegulateTempAndHumidity();
     /* USER CODE END TIM4_IRQn 0 */
     HAL_TIM_IRQHandler(&htim4);
     /* USER CODE BEGIN TIM4_IRQn 1 */

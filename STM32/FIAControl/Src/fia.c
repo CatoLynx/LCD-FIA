@@ -1,6 +1,7 @@
 #include "fia.h"
 #include "aditech.h"
 #include "ds18b20.h"
+#include "heap.h"
 #include "sht21.h"
 #include "spi.h"
 #include "stm32f4xx_hal.h"
@@ -11,12 +12,9 @@
 int16_t backlightBaseBrightness[2] = {2048, 2048};
 uint16_t lcdContrast[2] = {2048, 2048};
 uint8_t firstADCReadFlag = 1;
-
-// LCD Data buffers per LCD bus
-uint8_t lcdData1[LCD_BUF_SIZE];
-uint8_t lcdData2[LCD_BUF_SIZE];
-uint8_t lcdData3[LCD_BUF_SIZE];
-uint8_t lcdData4[LCD_BUF_SIZE];
+uint8_t FIA_circulationFansOverrideBLBallast = 0;
+uint8_t FIA_circulationFansOverrideHeatersTemp = 0;
+uint8_t FIA_circulationFansOverrideHeatersHumidity = 0;
 
 // Status variables for selected RAM per LCD bus
 uint8_t currentRAM[NUM_LCD_BUSES];
@@ -35,6 +33,8 @@ void FIA_Init(void) {
     HAL_DAC_Start(&LCD_CONTRAST_DAC, DAC1_CHANNEL_2);
     HAL_ADC_Start_DMA(&ENV_BRIGHTNESS_ADC, adcValues, ADC_NUM_CHANNELS);
 
+    heapInit();
+
     FIA_InitI2CDACs();
 
     FIA_SetStatusLED(1, 0);
@@ -42,8 +42,10 @@ void FIA_Init(void) {
 
     UART_StartRxRingBuffer();
 
-    memset(bitmapBufferSideA, 0xFF, BITMAP_BUF_SIZE);
-    memset(bitmapBufferSideB, 0xFF, BITMAP_BUF_SIZE);
+    FIA_SetBitmapDestinationBuffer(SIDE_BOTH);
+
+    memset(FIA_staticBufferSideA, 0xFF, BITMAP_BUF_SIZE);
+    memset(FIA_staticBufferSideB, 0xFF, BITMAP_BUF_SIZE);
 
     FIA_SetLCDContrast(SIDE_A, 2200);
     FIA_SetLCDContrast(SIDE_B, 2200);
@@ -51,16 +53,7 @@ void FIA_Init(void) {
     FIA_SetBacklightBrightness(SIDE_A, 0);
     FIA_SetBacklightBrightness(SIDE_B, 0);
 
-    FIA_SetHeaters(0);
     FIA_SetBacklight(1);
-    HAL_Delay(500);
-    FIA_SetBacklightBallastFans(1);
-    HAL_Delay(500);
-    FIA_SetCirculationFans(1);
-    HAL_Delay(500);
-    FIA_SetCirculationFans(2);
-    HAL_Delay(500);
-    FIA_SetHeatExchangerFan(1);
 }
 
 void FIA_InitI2CDACs(void) {
@@ -92,7 +85,7 @@ void FIA_MainLoop(void) {
     }
 
     if (!LCD_IsTransmitActive(BUS_1)) {
-        LCD_ConvertBitmap(lcdData1, bitmapBufferSideA, 0, currentRAM[BUS_1]);
+        LCD_ConvertBitmap(lcdData1, FIA_staticBufferSideA, 0, currentRAM[BUS_1]);
         LCD_TransmitBitmap(lcdData1, NUM_HALF_PANELS, BUS_1);
         if (currentRAM[BUS_1] == RAM1) {
             currentRAM[BUS_1] = RAM2;
@@ -101,7 +94,7 @@ void FIA_MainLoop(void) {
         }
     }
     if (!LCD_IsTransmitActive(BUS_2)) {
-        LCD_ConvertBitmap(lcdData2, bitmapBufferSideA, 1, currentRAM[BUS_2]);
+        LCD_ConvertBitmap(lcdData2, FIA_staticBufferSideA, 1, currentRAM[BUS_2]);
         LCD_TransmitBitmap(lcdData2, NUM_HALF_PANELS, BUS_2);
         if (currentRAM[BUS_2] == RAM1) {
             currentRAM[BUS_2] = RAM2;
@@ -110,7 +103,7 @@ void FIA_MainLoop(void) {
         }
     }
     if (!LCD_IsTransmitActive(BUS_3)) {
-        LCD_ConvertBitmap(lcdData3, bitmapBufferSideA, 0, currentRAM[BUS_3]);
+        LCD_ConvertBitmap(lcdData3, FIA_staticBufferSideB, 0, currentRAM[BUS_3]);
         LCD_TransmitBitmap(lcdData3, NUM_HALF_PANELS, BUS_3);
         if (currentRAM[BUS_3] == RAM1) {
             currentRAM[BUS_3] = RAM2;
@@ -119,7 +112,7 @@ void FIA_MainLoop(void) {
         }
     }
     if (!LCD_IsTransmitActive(BUS_4)) {
-        LCD_ConvertBitmap(lcdData4, bitmapBufferSideA, 1, currentRAM[BUS_4]);
+        LCD_ConvertBitmap(lcdData4, FIA_staticBufferSideB, 1, currentRAM[BUS_4]);
         LCD_TransmitBitmap(lcdData4, NUM_HALF_PANELS, BUS_4);
         if (currentRAM[BUS_4] == RAM1) {
             currentRAM[BUS_4] = RAM2;
@@ -130,19 +123,22 @@ void FIA_MainLoop(void) {
 }
 
 void FIA_StartBitmapReceive(void) {
-    if (HAL_SPI_Receive_DMA(&BITMAP_DATA_SPI, bitmapBufferSideA, BITMAP_BUF_SIZE) == HAL_OK) {
+    if (FIA_bitmapRxBuf == NULL || FIA_bitmapRxLen == 0) {
+        return;
+    }
+    if (HAL_SPI_Receive_DMA(&BITMAP_DATA_SPI, FIA_bitmapRxBuf, FIA_bitmapRxLen) == HAL_OK) {
         FIA_SetStatusLED(2, 1);
-        bitmapReceiveActive = 1;
+        FIA_bitmapReceiveActive = 1;
     }
 }
 
 void FIA_AbortBitmapReceive(void) {
-    if (!bitmapReceiveActive)
+    if (!FIA_bitmapReceiveActive)
         return;
     if (HAL_SPI_Abort(&BITMAP_DATA_SPI) == HAL_OK) {
         FIA_SetStatusLED(2, 0);
         FIA_SetStatusLED(1, 0);
-        bitmapReceiveActive = 0;
+        FIA_bitmapReceiveActive = 0;
     }
 }
 
@@ -298,7 +294,8 @@ void FIA_UpdateADCValues() {
     }
 
     // ...and the internal temperature sensor
-    tempSensorValues[3] = ((mapRange(adcAverages[2], 0, 4095, 0, 3.3) - TEMP_SENS_V25) / TEMP_SENS_AVG_SLOPE) + 25.0;
+    FIA_tempSensorValues[3] =
+        ((mapRange(adcAverages[2], 0, 4095, 0, 3.3) - TEMP_SENS_V25) / TEMP_SENS_AVG_SLOPE) + 25.0;
 }
 
 void FIA_SetBacklight(uint8_t status) {
@@ -389,29 +386,17 @@ void FIA_StartExtTempSensorConv(void) {
 
 void FIA_ReadTempSensors(void) {
     // Initiate a read from the temperature sensors
-    tempSensorValues[0] = DS18B20_ReadTemperature(TEMP_1_ONEWIRE_GPIO_Port, TEMP_1_ONEWIRE_Pin);
-    tempSensorValues[1] = DS18B20_ReadTemperature(TEMP_2_ONEWIRE_GPIO_Port, TEMP_2_ONEWIRE_Pin);
-    tempSensorValues[2] = SHT21_GetTemperature();
+    FIA_tempSensorValues[0] = DS18B20_ReadTemperature(TEMP_1_ONEWIRE_GPIO_Port, TEMP_1_ONEWIRE_Pin);
+    FIA_tempSensorValues[1] = DS18B20_ReadTemperature(TEMP_2_ONEWIRE_GPIO_Port, TEMP_2_ONEWIRE_Pin);
+    FIA_tempSensorValues[2] = SHT21_GetTemperature();
     SHT21_HandleCommunication();
 }
 
 double FIA_GetTemperature(FIA_Temp_Sensor_t sensor) {
     // Get the value for the specified temperature sensor
-    switch (sensor) {
-        case EXT_1: {
-            return tempSensorValues[0];
-        }
-        case EXT_2: {
-            return tempSensorValues[1];
-        }
-        case BOARD: {
-            return tempSensorValues[2];
-        }
-        case MCU: {
-            return tempSensorValues[3];
-        }
-    }
-    return 0;
+    if (sensor < 0 || sensor > 3)
+        return 0;
+    return FIA_tempSensorValues[sensor];
 }
 
 double FIA_GetHumidity() {
@@ -419,10 +404,207 @@ double FIA_GetHumidity() {
     return SHT21_GetHumidity();
 }
 
+uint8_t FIA_CreateScrollBuffer(FIA_Side_t side, uint16_t dispX, uint16_t dispY, uint16_t dispW, uint16_t dispH,
+                               uint16_t intW, uint16_t intH) {
+    if (FIA_scrollBufferCount >= MAX_SCROLL_BUFFERS || FIA_nextFreeScrollBufferIndex == -1) {
+        return SCROLL_BUFFER_ERR_COUNT;
+    }
+
+    size_t bufSize = intW * roundUp(intH, 8) / 8;
+    uint8_t* buf = malloc(bufSize);
+    if (buf == NULL) {
+        return SCROLL_BUFFER_ERR_SIZE;
+    }
+    memset(buf, 0x00, bufSize);
+
+    FIA_Scroll_Buffer_t* scrollBuffer = &FIA_scrollBuffers[FIA_nextFreeScrollBufferIndex];
+    scrollBuffer->occupied = 1;
+    scrollBuffer->side = side;
+    scrollBuffer->dispX = dispX;
+    scrollBuffer->dispY = dispY;
+    scrollBuffer->dispW = dispW;
+    scrollBuffer->dispH = dispH;
+    scrollBuffer->intW = intW;
+    scrollBuffer->intH = intH;
+    scrollBuffer->bufSize = bufSize;
+    scrollBuffer->buf = buf;
+    uint8_t ret = FIA_nextFreeScrollBufferIndex | SCROLL_BUFFER_ID_MASK;
+    FIA_UpdateNextFreeScrollBufferIndex();
+    FIA_scrollBufferCount++;
+    return ret;
+}
+
+uint8_t FIA_DeleteScrollBuffer(uint8_t id) {
+    if (!(id & SCROLL_BUFFER_ID_MASK)) {
+        return 0;
+    }
+    uint8_t bufIdx = id - SCROLL_BUFFER_ID_MASK;
+    if (bufIdx >= MAX_SCROLL_BUFFERS) {
+        return 0;
+    }
+    FIA_Scroll_Buffer_t* scrollBuffer = &FIA_scrollBuffers[bufIdx];
+    if (!scrollBuffer->occupied || scrollBuffer->buf == NULL) {
+        return 0;
+    }
+    if (FIA_bitmapRxBuf == scrollBuffer->buf) {
+        // Prevent deletion of the currently active buffer
+        return 0;
+    }
+    free(scrollBuffer->buf);
+    scrollBuffer->occupied = 0;
+    scrollBuffer->side = 0;
+    scrollBuffer->dispX = 0;
+    scrollBuffer->dispY = 0;
+    scrollBuffer->dispW = 0;
+    scrollBuffer->dispH = 0;
+    scrollBuffer->intW = 0;
+    scrollBuffer->intH = 0;
+    scrollBuffer->bufSize = 0;
+    scrollBuffer->buf = NULL;
+    FIA_UpdateNextFreeScrollBufferIndex();
+    FIA_scrollBufferCount--;
+    return 1;
+}
+
+void FIA_UpdateNextFreeScrollBufferIndex(void) {
+    for (uint8_t i = 0; i < MAX_SCROLL_BUFFERS; i++) {
+        if (!FIA_scrollBuffers[i].occupied) {
+            FIA_nextFreeScrollBufferIndex = i;
+            return;
+        }
+    }
+    FIA_nextFreeScrollBufferIndex = -1;
+}
+
+uint8_t FIA_SetBitmapDestinationBuffer(uint8_t id) {
+    if (id == SIDE_A) {
+        FIA_bitmapRxBuf = FIA_staticBufferSideA;
+        FIA_bitmapRxBoth = 0;
+        FIA_bitmapRxLen = BITMAP_BUF_SIZE;
+    } else if (id == SIDE_B) {
+        FIA_bitmapRxBuf = FIA_staticBufferSideB;
+        FIA_bitmapRxBoth = 0;
+        FIA_bitmapRxLen = BITMAP_BUF_SIZE;
+    } else if (id == SIDE_BOTH) {
+        FIA_bitmapRxBuf = FIA_staticBufferSideA;
+        FIA_bitmapRxBoth = 1;
+        FIA_bitmapRxLen = BITMAP_BUF_SIZE;
+    } else if (id & SCROLL_BUFFER_ID_MASK) {
+        if (!(id & SCROLL_BUFFER_ID_MASK)) {
+            return 0;
+        }
+        uint8_t bufIdx = id - SCROLL_BUFFER_ID_MASK;
+        if (!bufIdx || bufIdx >= MAX_SCROLL_BUFFERS) {
+            return 0;
+        }
+        FIA_Scroll_Buffer_t* scrollBuffer = &FIA_scrollBuffers[bufIdx];
+        if (!scrollBuffer->occupied || scrollBuffer->buf == NULL) {
+            return 0;
+        }
+        FIA_bitmapRxBuf = scrollBuffer->buf;
+        FIA_bitmapRxBoth = 0;
+        FIA_bitmapRxLen = scrollBuffer->bufSize;
+    } else {
+        return 0;
+    }
+
+    return 1;
+}
+
+void FIA_RegulateTempAndHumidity(void) {
+    int8_t htrState = -1, blBallState = -1, circState = -1, exchState = -1;
+
+    if (FIA_tempSensorValues[AIRFLOW] <= HEATERS_FULL_TEMP) {
+        htrState = 2;
+        circState = 2;
+        FIA_circulationFansOverrideHeatersTemp = 1;
+    } else if (FIA_tempSensorValues[AIRFLOW] <= HEATERS_HALF_TEMP) {
+        htrState = 1;
+        circState = 2;
+        FIA_circulationFansOverrideHeatersTemp = 1;
+    } else if (FIA_tempSensorValues[AIRFLOW] >= HEATERS_OFF_TEMP) {
+        htrState = 0;
+        if (!FIA_circulationFansOverrideBLBallast && !FIA_circulationFansOverrideHeatersHumidity) {
+            circState = 0;
+        }
+        FIA_circulationFansOverrideHeatersTemp = 0;
+    }
+
+    double humidity = FIA_GetHumidity();
+    if (humidity >= HEATERS_FULL_HUMIDITY) {
+        htrState = 2;
+        circState = 2;
+        FIA_circulationFansOverrideHeatersHumidity = 1;
+    } else if (humidity >= HEATERS_HALF_HUMIDITY) {
+        htrState = 1;
+        circState = 2;
+        FIA_circulationFansOverrideHeatersHumidity = 1;
+    } else if (humidity <= HEATERS_OFF_HUMIDITY) {
+        htrState = 0;
+        if (!FIA_circulationFansOverrideBLBallast && !FIA_circulationFansOverrideHeatersTemp) {
+            circState = 0;
+        }
+        FIA_circulationFansOverrideHeatersHumidity = 0;
+    }
+
+    if (FIA_tempSensorValues[AIRFLOW] >= HEATERS_CUTOFF_TEMP) {
+        htrState = 0;
+        if (!FIA_circulationFansOverrideBLBallast && !FIA_circulationFansOverrideHeatersHumidity) {
+            circState = 0;
+        }
+        FIA_circulationFansOverrideHeatersTemp = 0;
+    }
+
+    if (FIA_tempSensorValues[BL_BALL] >= BL_BALLAST_FANS_ON_TEMP) {
+        blBallState = 1;
+    } else if (FIA_tempSensorValues[BL_BALL] <= BL_BALLAST_FANS_OFF_TEMP) {
+        blBallState = 0;
+    }
+
+    if (FIA_tempSensorValues[BL_BALL] >= CIRCULATION_FANS_BL_BALLAST_ON_TEMP) {
+        circState = 2;
+        FIA_circulationFansOverrideBLBallast = 1;
+    } else if (FIA_tempSensorValues[BL_BALL] <= CIRCULATION_FANS_BL_BALLAST_OFF_TEMP) {
+        if (!FIA_circulationFansOverrideHeatersTemp && !FIA_circulationFansOverrideHeatersHumidity) {
+            circState = 0;
+        }
+        FIA_circulationFansOverrideBLBallast = 0;
+    }
+
+    if (!FIA_circulationFansOverrideBLBallast && !FIA_circulationFansOverrideHeatersTemp &&
+        !FIA_circulationFansOverrideHeatersHumidity) {
+        if (FIA_tempSensorValues[AIRFLOW] >= CIRCULATION_FANS_FULL_TEMP) {
+            circState = 2;
+        } else if (FIA_tempSensorValues[AIRFLOW] >= CIRCULATION_FANS_HALF_TEMP) {
+            circState = 1;
+        } else if (FIA_tempSensorValues[AIRFLOW] <= CIRCULATION_FANS_OFF_TEMP) {
+            circState = 0;
+        }
+    }
+
+    if (FIA_tempSensorValues[AIRFLOW] >= HEAT_EXCHANGER_FAN_ON_TEMP) {
+        exchState = 1;
+    } else if (FIA_tempSensorValues[AIRFLOW] <= HEAT_EXCHANGER_FAN_OFF_TEMP) {
+        exchState = 0;
+    }
+
+    if (htrState != -1)
+        FIA_SetHeaters(htrState);
+    if (blBallState != -1)
+        FIA_SetBacklightBallastFans(blBallState);
+    if (circState != -1)
+        FIA_SetCirculationFans(circState);
+    if (exchState != -1)
+        FIA_SetHeatExchangerFan(exchState);
+}
+
 void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef* hspi) {
     if (hspi == &BITMAP_DATA_SPI) {
-        bitmapReceiveActive = 0;
+        FIA_bitmapReceiveActive = 0;
         FIA_SetStatusLED(2, 0);
         FIA_SetStatusLED(1, 1);
+        if (FIA_bitmapRxBoth) {
+            memcpy(FIA_staticBufferSideB, FIA_staticBufferSideA, BITMAP_BUF_SIZE);
+        }
     }
 }

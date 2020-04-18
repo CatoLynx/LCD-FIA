@@ -14,3 +14,4 @@ double mapRange(double input, double inMin, double inMax, double outMin, double 
 double limitRange(double input, double min, double max);
 void avgInterleaved(uint32_t* in, uint32_t* out, uint8_t numChannels, uint32_t countPerChannel);
 void setGPIOMode(GPIO_TypeDef* port, uint16_t pin, uint16_t mode, uint16_t pull, uint16_t speed);
+uint16_t roundUp(uint16_t numToRound, uint16_t multiple);

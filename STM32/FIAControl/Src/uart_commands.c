@@ -1,6 +1,7 @@
 #include "uart_commands.h"
 #include "fia.h"
 #include "uart_protocol.h"
+#include "util.h"
 #include <string.h>
 
 void UART_ProcessCommand(uint8_t command, uint8_t* parameters, uint8_t parameterLength) {
@@ -119,8 +120,8 @@ void UART_ProcessCommand(uint8_t command, uint8_t* parameters, uint8_t parameter
         }
 
         case UART_CMD_GET_TEMPERATURES: {
-            int16_t tempExt1 = FIA_GetTemperature(EXT_1) * 100;
-            int16_t tempExt2 = FIA_GetTemperature(EXT_2) * 100;
+            int16_t tempExt1 = FIA_GetTemperature(BL_BALL) * 100;
+            int16_t tempExt2 = FIA_GetTemperature(AIRFLOW) * 100;
             int16_t tempBoard = FIA_GetTemperature(BOARD) * 100;
             int16_t tempMCU = FIA_GetTemperature(MCU) * 100;
             uartTxPayload[0] = tempExt1 >> 8;
@@ -171,6 +172,36 @@ void UART_ProcessCommand(uint8_t command, uint8_t* parameters, uint8_t parameter
             uartTxPayload[2] = ctrB >> 8;
             uartTxPayload[3] = ctrB & 0xFF;
             responseLength = 4;
+            break;
+        }
+
+        case UART_CMD_CREATE_SCROLL_BUFFER: {
+            responseLength = 1;
+
+            FIA_Side_t side = parameters[0];
+            uint16_t dispX = ((uint16_t)parameters[1] << 8) | parameters[2];
+            uint16_t dispY = ((uint16_t)parameters[3] << 8) | parameters[4];
+            uint16_t dispW = ((uint16_t)parameters[5] << 8) | parameters[6];
+            uint16_t dispH = ((uint16_t)parameters[7] << 8) | parameters[8];
+            uint16_t intW = ((uint16_t)parameters[9] << 8) | parameters[10];
+            uint16_t intH = ((uint16_t)parameters[11] << 8) | parameters[12];
+            uint8_t id = FIA_CreateScrollBuffer(side, dispX, dispY, dispW, dispH, intW, intH);
+
+            uartTxPayload[0] = id;
+            break;
+        }
+
+        case UART_CMD_DELETE_SCROLL_BUFFER: {
+            responseLength = 1;
+            uint8_t status = FIA_DeleteScrollBuffer(parameters[0]);
+            uartTxPayload[0] = status;
+            break;
+        }
+
+        case UART_CMD_SET_DESTINATION_BUFFER: {
+            responseLength = 1;
+            uint8_t status = FIA_SetBitmapDestinationBuffer(parameters[0]);
+            uartTxPayload[0] = status;
             break;
         }
     }
