@@ -386,8 +386,13 @@ void FIA_StartExtTempSensorConv(void) {
 
 void FIA_ReadTempSensors(void) {
     // Initiate a read from the temperature sensors
-    FIA_tempSensorValues[0] = DS18B20_ReadTemperature(TEMP_1_ONEWIRE_GPIO_Port, TEMP_1_ONEWIRE_Pin);
-    FIA_tempSensorValues[1] = DS18B20_ReadTemperature(TEMP_2_ONEWIRE_GPIO_Port, TEMP_2_ONEWIRE_Pin);
+    double temp;
+    temp = DS18B20_ReadTemperature(TEMP_1_ONEWIRE_GPIO_Port, TEMP_1_ONEWIRE_Pin);
+    if (temp != DS18B20_ERROR)
+        FIA_tempSensorValues[0] = temp;
+    temp = DS18B20_ReadTemperature(TEMP_2_ONEWIRE_GPIO_Port, TEMP_2_ONEWIRE_Pin);
+    if (temp != DS18B20_ERROR)
+        FIA_tempSensorValues[1] = temp;
     FIA_tempSensorValues[2] = SHT21_GetTemperature();
     SHT21_HandleCommunication();
 }

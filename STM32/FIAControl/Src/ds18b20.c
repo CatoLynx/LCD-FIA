@@ -72,7 +72,7 @@ void DS18B20_ConvertTemperature(GPIO_TypeDef* port, uint16_t pin) {
 double DS18B20_ReadTemperature(GPIO_TypeDef* port, uint16_t pin) {
     uint8_t present = DS18B20_Start(port, pin);
     if (!present)
-        return 1337;
+        return DS18B20_ERROR;
     delay_us(1000);
     DS18B20_Write(port, pin, 0xCC); // skip ROM
     DS18B20_Write(port, pin, 0xBE); // Read Scratch-pad
