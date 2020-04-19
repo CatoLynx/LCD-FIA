@@ -5,6 +5,7 @@
 #include "util.h"
 
 const uint8_t BACKPLANES[NUM_BACKPLANES] = {COM2, COM1, COM3, COM0};
+uint8_t* lcdDataBuffers[4] = {lcdData1, lcdData2, lcdData3, lcdData4};
 
 uint8_t LCD_GetEndian(uint8_t backplane) {
     if (backplane == COM0 || backplane == COM1) {

@@ -71,13 +71,13 @@
 #define TEMP_SENS_AVG_SLOPE 0.0025 // V/°C
 
 // Temperature regulation
-#define BL_BALLAST_FANS_ON_TEMP 40
-#define BL_BALLAST_FANS_OFF_TEMP 35
+#define BL_BALLAST_FANS_ON_TEMP 55
+#define BL_BALLAST_FANS_OFF_TEMP 50
 #define CIRCULATION_FANS_HALF_TEMP 40
 #define CIRCULATION_FANS_FULL_TEMP 45
 #define CIRCULATION_FANS_OFF_TEMP 35
-#define CIRCULATION_FANS_BL_BALLAST_ON_TEMP 45
-#define CIRCULATION_FANS_BL_BALLAST_OFF_TEMP 40
+#define CIRCULATION_FANS_BL_BALLAST_ON_TEMP 60
+#define CIRCULATION_FANS_BL_BALLAST_OFF_TEMP 50
 #define HEAT_EXCHANGER_FAN_ON_TEMP 45
 #define HEAT_EXCHANGER_FAN_OFF_TEMP 35
 #define HEATERS_HALF_TEMP 15
@@ -124,6 +124,10 @@ uint8_t firstADCAverageFlag;
 uint8_t FIA_bitmapReceiveActive;
 uint8_t FIA_staticBufferSideA[BITMAP_BUF_SIZE];
 uint8_t FIA_staticBufferSideB[BITMAP_BUF_SIZE];
+uint8_t FIA_maskBufferSideA[BITMAP_BUF_SIZE];
+uint8_t FIA_maskBufferSideB[BITMAP_BUF_SIZE];
+uint8_t FIA_displayBufferSideA[BITMAP_BUF_SIZE];
+uint8_t FIA_displayBufferSideB[BITMAP_BUF_SIZE];
 uint8_t* FIA_bitmapRxBuf;
 uint8_t FIA_bitmapRxBoth;
 uint16_t FIA_bitmapRxLen;
@@ -143,6 +147,8 @@ uint8_t FIA_circulationFansOverrideHeatersHumidity;
 void FIA_Init(void);
 void FIA_InitI2CDACs(void);
 void FIA_MainLoop(void);
+void FIA_UpdateDisplayBuffers(void);
+void FIA_UpdateDisplay(FIA_LCD_Bus_t bus);
 void FIA_StartBitmapReceive(void);
 void FIA_AbortBitmapReceive(void);
 void FIA_SetBacklightBrightness(FIA_Side_t side, uint16_t value);

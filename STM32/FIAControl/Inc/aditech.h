@@ -52,6 +52,7 @@ uint8_t lcdData1[LCD_BUF_SIZE];
 uint8_t lcdData2[LCD_BUF_SIZE];
 uint8_t lcdData3[LCD_BUF_SIZE];
 uint8_t lcdData4[LCD_BUF_SIZE];
+uint8_t* lcdDataBuffers[4];
 
 // Transmission status data per LCD bus
 uint8_t curTransmittedBackplaneIndex[NUM_LCD_BUSES];
