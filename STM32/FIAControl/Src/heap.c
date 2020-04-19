@@ -39,33 +39,36 @@ void heapInit() {
 void* malloc(size_t size) {
     size_t blockSize = (size & ~0x3) + 4;
     _heapEntry_t* block = _heapHead->firstBlock;
-    while (block && (block->flags & USED ||
-                     // block->size != blockSize && TODO: Exact match
-                     block->size < blockSize + sizeof(_heapEntry_t))) {
+    while (block &&
+           (block->flags & USED || (block->size != blockSize && block->size < blockSize + sizeof(_heapEntry_t)))) {
         block = block->next;
     }
     if (block == NULL) {
         return NULL;
     }
 
-    _heapEntry_t* nextPtr = block->next;
-    size_t newFreeSize = block->size - (blockSize + sizeof(_heapEntry_t));
-
-    block->size = blockSize;
-    block->next = (_heapEntry_t*)((uint8_t*)block + block->size + sizeof(_heapEntry_t));
-    block->next->prev = block;
-    block->next->next = nextPtr;
-    block->next->size = newFreeSize;
-    block->next->flags = block->flags;
-
-    block->flags = USED;
-
-    if (nextPtr) {
-        nextPtr->prev = block->next;
+    if (block->size == blockSize) // Exact match: reuse free block as is.
+    {
+        block->flags = USED;
     } else {
-        _heapHead->lastBlock = block->next;
-    }
+        _heapEntry_t* nextPtr = block->next;
+        size_t newFreeSize = block->size - (blockSize + sizeof(_heapEntry_t));
 
+        block->size = blockSize;
+        block->next = (_heapEntry_t*)((uint8_t*)block + block->size + sizeof(_heapEntry_t));
+        block->next->prev = block;
+        block->next->next = nextPtr;
+        block->next->size = newFreeSize;
+        block->next->flags = block->flags;
+
+        block->flags = USED;
+
+        if (nextPtr) {
+            nextPtr->prev = block->next;
+        } else {
+            _heapHead->lastBlock = block->next;
+        }
+    }
     return block->data;
 }
 
