@@ -88,6 +88,7 @@ void Error_Handler(void);
 #define BITMAP_SCK_GPIO_Port GPIOB
 #define AUX_IN_1_Pin GPIO_PIN_7
 #define AUX_IN_1_GPIO_Port GPIOE
+#define AUX_IN_1_EXTI_IRQn EXTI9_5_IRQn
 #define DOOR_A_Pin GPIO_PIN_8
 #define DOOR_A_GPIO_Port GPIOE
 #define LCD_FRAME_Pin GPIO_PIN_9

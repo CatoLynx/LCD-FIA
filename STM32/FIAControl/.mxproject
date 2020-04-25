@@ -1,7 +1,7 @@
 [PreviousGenFiles]
-HeaderPath=E:/Google Drive/Dokumente/Elektronik/Projekte/funkwerk KJ LCD FIA/STM32/FIAControl/Inc
+HeaderPath=C:/Users/micro/Git/LCD-FIA/STM32/FIAControl/Inc
 HeaderFiles=gpio.h;adc.h;dac.h;dma.h;i2c.h;spi.h;tim.h;usart.h;stm32f4xx_it.h;stm32f4xx_hal_conf.h;main.h;
-SourcePath=E:/Google Drive/Dokumente/Elektronik/Projekte/funkwerk KJ LCD FIA/STM32/FIAControl/Src
+SourcePath=C:/Users/micro/Git/LCD-FIA/STM32/FIAControl/Src
 SourceFiles=gpio.c;adc.c;dac.c;dma.c;i2c.c;spi.c;tim.c;usart.c;stm32f4xx_it.c;stm32f4xx_hal_msp.c;main.c;
 
 [PreviousLibFiles]
