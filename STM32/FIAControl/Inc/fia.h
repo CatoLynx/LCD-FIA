@@ -45,6 +45,7 @@
 
 // LCD related definitions
 #define NUM_LCD_BUSES 4
+#define LCD_FR_INTERVAL 1400 // Must be even. Formula: x = F_CPU/200/f
 
 // How many panels are daisy-chained.
 // This assumes that first all top halves of each display

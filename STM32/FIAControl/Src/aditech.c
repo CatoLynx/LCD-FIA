@@ -49,7 +49,7 @@ uint8_t LCD_GetBitmapByte(uint8_t* data, uint8_t panelRowOffset, uint8_t halfPan
         // Half panels are indexed from left to right and bitmaps are not rotated.
 
         // Calculate the internal half panel index (to account for wiring style)
-        halfPanelOffset = halfPanelIndex - 5;
+        halfPanelOffset = halfPanelIndex - NUM_PANELS;
 
         // First, calculate the base offset where the 4 bytes for the indexed column are located
         baseIndex = (halfPanelOffset * PANEL_WIDTH * NUM_PANEL_ROWS * PANEL_HEIGHT / 8) +
@@ -61,7 +61,7 @@ uint8_t LCD_GetBitmapByte(uint8_t* data, uint8_t panelRowOffset, uint8_t halfPan
         // Half panels are indexed from right to left and half panels are rotated 180 degrees.
 
         // Calculate the internal half panel index (to account for wiring style)
-        halfPanelOffset = 4 - halfPanelIndex;
+        halfPanelOffset = (NUM_PANELS - 1) - halfPanelIndex;
 
         // First, calculate the base offset where the 4 bytes for the indexed column are located
         // Since half panels are rotated 180 degrees, backplane 0 is at the bottom.
@@ -178,7 +178,7 @@ uint8_t LCD_TransmitBitmap(uint8_t* data, uint8_t numHalfPanels, FIA_LCD_Bus_t r
     transmitActive[row] = 1;
     curLCDData[row] = data;
     curTransmittedBackplaneIndex[row] = 0;
-    LCD_TransmitBackplane(data, BACKPLANES[curTransmittedBackplaneIndex[row]], NUM_HALF_PANELS, row);
+    LCD_TransmitBackplane(data, BACKPLANES[curTransmittedBackplaneIndex[row]], numHalfPanels, row);
     return 1;
 }
 
