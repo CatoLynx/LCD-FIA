@@ -12,8 +12,8 @@
             "pad_left": 0,
             "pad_top": 0,
             "inverted": false,
-            "font": "kj_plain.000",
-            "size": 42,
+            "font": "42_DBLCD",
+            "size": 0,
             "align": "right",
             "spacing": 2,
             "default": ""
@@ -22,14 +22,14 @@
             "name": "section",
             "type": "text",
             "x": 384,
-            "y": 48,
+            "y": 50,
             "width": 94,
-            "height": 16,
+            "height": 14,
             "pad_left": 0,
             "pad_top": 0,
             "inverted": false,
-            "font": "kj_plain.000",
-            "size": 12,
+            "font": "10_DBLCD",
+            "size": 0,
             "align": "right",
             "spacing": 1,
             "default": ""
@@ -44,9 +44,10 @@
             "pad_left": 0,
             "pad_top": 0,
             "inverted": false,
-            "font": "kj_plain.000",
-            "size": 17,
+            "font": "17_DBLCD",
+            "size": 0,
             "align": "left",
+            "spacing": 1,
             "default": ""
         },
         {
@@ -55,12 +56,12 @@
             "x": 97,
             "y": 0,
             "width": 287,
-            "height": 15,
+            "height": 16,
             "pad_left": 0,
-            "pad_top": 1,
+            "pad_top": 2,
             "inverted": true,
-            "font": "kj_plain.002",
-            "size": 10,
+            "font": "10_DBLCD",
+            "size": 0,
             "align": "left",
             "spacing": 1,
             "default": ""
@@ -75,9 +76,10 @@
             "pad_left": 0,
             "pad_top": 0,
             "inverted": false,
-            "font": "kj_plain.000",
-            "size": 10,
+            "font": "10S_DBLCD",
+            "size": 0,
             "align": "left",
+            "spacing": 1,
             "default": ""
         },
         {
@@ -90,9 +92,10 @@
             "pad_left": 0,
             "pad_top": 0,
             "inverted": false,
-            "font": "kj_plain.000",
-            "size": 10,
+            "font": "10S_DBLCD",
+            "size": 0,
             "align": "left",
+            "spacing": 1,
             "default": ""
         },
         {
@@ -105,10 +108,10 @@
             "pad_left": 0,
             "pad_top": 0,
             "inverted": false,
-            "font": "kj_plain.000",
-            "size": 21,
+            "font": "21_DBLCD",
+            "size": 0,
             "align": "left",
-            "spacing": 1,
+            "spacing": 2,
             "default": ""
         },
         {
@@ -121,8 +124,8 @@
             "pad_left": 0,
             "pad_top": 0,
             "inverted": false,
-            "font": "kj_plain.000",
-            "size": 7,
+            "font": "7_DBLCD",
+            "size": 0,
             "align": "left",
             "spacing": 1,
             "default": "Folgezüge:"
@@ -137,9 +140,10 @@
             "pad_left": 0,
             "pad_top": 0,
             "inverted": false,
-            "font": "kj_plain.000",
-            "size": 14,
+            "font": "14_DBLCD",
+            "size": 0,
             "align": "left",
+            "spacing": 1,
             "default": ""
         },
         {
@@ -150,11 +154,12 @@
             "width": 39,
             "height": 15,
             "pad_left": 0,
-            "pad_top": 1,
+            "pad_top": 2,
             "inverted": true,
-            "font": "kj_plain.002",
-            "size": 10,
+            "font": "10_DBLCD",
+            "size": 0,
             "align": "center",
+            "spacing": 1,
             "default": ""
         },
         {
@@ -167,9 +172,10 @@
             "pad_left": 0,
             "pad_top": 0,
             "inverted": false,
-            "font": "kj_plain.000",
-            "size": 14,
+            "font": "14_DBLCD",
+            "size": 0,
             "align": "left",
+            "spacing": 1,
             "default": ""
         },
         {
@@ -180,11 +186,12 @@
             "width": 39,
             "height": 15,
             "pad_left": 0,
-            "pad_top": 1,
+            "pad_top": 2,
             "inverted": true,
-            "font": "kj_plain.002",
-            "size": 10,
+            "font": "10_DBLCD",
+            "size": 0,
             "align": "center",
+            "spacing": 1,
             "default": ""
         },
         {
@@ -197,9 +204,10 @@
             "pad_left": 0,
             "pad_top": 0,
             "inverted": false,
-            "font": "kj_plain.000",
-            "size": 12,
+            "font": "12_DBLCD",
+            "size": 0,
             "align": "left",
+            "spacing": 1,
             "default": ""
         },
         {
@@ -212,9 +220,10 @@
             "pad_left": 0,
             "pad_top": 0,
             "inverted": false,
-            "font": "kj_plain.000",
-            "size": 12,
+            "font": "12_DBLCD",
+            "size": 0,
             "align": "left",
+            "spacing": 1,
             "default": ""
         },
         {
@@ -227,9 +236,10 @@
             "pad_left": 0,
             "pad_top": 0,
             "inverted": false,
-            "font": "kj_plain.000",
-            "size": 14,
+            "font": "14_DBLCD",
+            "size": 0,
             "align": "left",
+            "spacing": 1,
             "default": ""
         },
         {
@@ -240,11 +250,12 @@
             "width": 96,
             "height": 15,
             "pad_left": 0,
-            "pad_top": 1,
+            "pad_top": 2,
             "inverted": true,
-            "font": "kj_plain.002",
-            "size": 10,
+            "font": "10_DBLCD",
+            "size": 0,
             "align": "center",
+            "spacing": 1,
             "default": ""
         },
         {
@@ -257,9 +268,10 @@
             "pad_left": 0,
             "pad_top": 0,
             "inverted": false,
-            "font": "kj_plain.000",
-            "size": 14,
+            "font": "14_DBLCD",
+            "size": 0,
             "align": "left",
+            "spacing": 1,
             "default": ""
         },
         {
@@ -270,11 +282,12 @@
             "width": 96,
             "height": 15,
             "pad_left": 0,
-            "pad_top": 1,
+            "pad_top": 2,
             "inverted": true,
-            "font": "kj_plain.002",
-            "size": 10,
+            "font": "10_DBLCD",
+            "size": 0,
             "align": "center",
+            "spacing": 1,
             "default": ""
         }
     ]

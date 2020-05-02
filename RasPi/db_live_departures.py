@@ -69,7 +69,7 @@ def main():
                     'departure': trains[0]['scheduledDeparture'],
                     'info': get_info_long(trains[0]),
                     'train': trains[0]['train'],
-                    'via': "  -  ".join(trains[0]['via'][:2]),
+                    'via': " \xb4 ".join(trains[0]['via'][:2]),
                     'destination': trains[0]['destination'],
                     'next_train_1_departure': trains[1]['scheduledDeparture'],
                     'next_train_1_delay': "+{}".format(delay_next_1) if delay_next_1 else "",

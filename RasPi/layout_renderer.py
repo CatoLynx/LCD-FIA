@@ -7,13 +7,7 @@ from PIL import Image, ImageOps, ImageDraw
 
 class LayoutRenderer:
     CHAR_MAP = {
-        "ä": 0xc3a4,
-        "ö": 0xc3b6,
-        "ü": 0xc3bc,
-        "Ü": 0xc39c,
-        "ß": 0xc39f,
-        "Ä": 0xc384,
-        "Ö": 0xc396
+        
     }
     
     def __init__(self, font_dir):
