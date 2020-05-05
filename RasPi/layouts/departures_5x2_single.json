@@ -83,6 +83,38 @@
             "default": ""
         },
         {
+            "name": "order_sections",
+            "type": "text",
+            "x": 4,
+            "y": 39,
+            "width": 92,
+            "height": 11,
+            "pad_left": 0,
+            "pad_top": 0,
+            "inverted": false,
+            "font": "F_11x13",
+            "size": 0,
+            "align": "left",
+            "char_width": 13,
+            "default": ""
+        },
+        {
+            "name": "order_coaches",
+            "type": "text",
+            "x": 4,
+            "y": 51,
+            "width": 92,
+            "height": 11,
+            "pad_left": 0,
+            "pad_top": 0,
+            "inverted": false,
+            "font": "F_11x13",
+            "size": 0,
+            "align": "left",
+            "char_width": 13,
+            "default": ""
+        },
+        {
             "name": "via",
             "type": "text",
             "x": 97,

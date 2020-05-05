@@ -19,16 +19,22 @@ class LayoutRenderer:
     def get_char_filename(self, font, size, code):
         return os.path.join(self.font_dir, font, "size_{}".format(size), "{:x}.bmp".format(code))
     
-    def render_character(self, img, x, y, filename):
+    def render_character(self, img, x, y, force_width, filename):
         try:
             char_img = Image.open(filename)
         except FileNotFoundError:
             return (False, x, y)
         char_width, char_height = char_img.size
-        img.paste(char_img, (x, y))
-        return (True, x+char_width, y)
+        if force_width is not None:
+            if force_width < char_width:
+                char_img = char_img.crop((0, 0, force_width, char_height))
+            img.paste(char_img, (x, y))
+            return (True, x+force_width, y)
+        else:
+            img.paste(char_img, (x, y))
+            return (True, x+char_width, y)
 
-    def render_text(self, width, height, pad_left, pad_top, font, size, align, inverted, spacing, text):
+    def render_text(self, width, height, pad_left, pad_top, font, size, align, inverted, spacing, char_width, text):
         text_img = Image.new(self.img_mode, (width, height), color=self.img_bg)
         x = pad_left
         y = pad_top
@@ -37,7 +43,7 @@ class LayoutRenderer:
                 code = self.CHAR_MAP[char]
             else:
                 code = ord(char)
-            success, x, y = self.render_character(text_img, x, y, self.get_char_filename(font, size, code))
+            success, x, y = self.render_character(text_img, x, y, char_width, self.get_char_filename(font, size, code))
             x += spacing
         if align in ('center', 'right'):
             bbox = ImageOps.invert(text_img).getbbox()
@@ -79,7 +85,8 @@ class LayoutRenderer:
             size = placeholder.get('size')
             align = placeholder.get('align')
             spacing = placeholder.get('spacing', 0)
-            img.paste(self.render_text(width, height, pad_left, pad_top, font, size, align, inverted, spacing, value), (x, y))
+            char_width = placeholder.get('char_width', None)
+            img.paste(self.render_text(width, height, pad_left, pad_top, font, size, align, inverted, spacing, char_width, value), (x, y))
         elif render_content and p_type == 'image':
             if not value:
                 return
