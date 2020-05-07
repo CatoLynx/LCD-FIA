@@ -72,6 +72,8 @@ def main():
     
     last_frame_time = time.time() - frame_interval
     cur_frame = 0
+    loop_dropped = 0
+    total_dropped = 0
     loop_desync = 0.0
     total_desync = 0.0
     next_frame_interval = frame_interval
@@ -81,17 +83,27 @@ def main():
             now = time.time()
             diff = now - last_frame_time
             if diff >= next_frame_interval:
-                sys.stdout.write("\rFrame {frame:>6} of {count:>6}, took {diff:>5.3f}s, target {interval:>5.3f}s, loop desync {loop_desync:>8.3f}s, total desync {total_desync:>8.3f}s".format(frame=cur_frame+1, count=frame_count, diff=diff, interval=next_frame_interval, loop_desync=loop_desync, total_desync=total_desync))
+                timestamp = datetime.timedelta(milliseconds=cur_frame * frame_interval * 1000)
+                timestamp -= datetime.timedelta(microseconds=timestamp.microseconds)
+                sys.stdout.write("\rFrame {frame:>6} of {count:>6} ({timestamp}), took {diff:>5.3f}s, target {interval:>5.3f}s, loop desync {loop_desync:>8.3f}s (dropped: {loop_dropped:>6}), total desync {total_desync:>8.3f}s (dropped: {total_dropped:>6})".format(frame=cur_frame+1, timestamp=timestamp, count=frame_count, diff=diff, interval=next_frame_interval, loop_desync=loop_desync, loop_dropped=loop_dropped, total_desync=total_desync, total_dropped=total_dropped))
                 sys.stdout.flush()
                 fia.send_image(frames[cur_frame])
                 last_frame_time = now
                 cur_frame += 1
                 loop_desync += diff - frame_interval
                 total_desync += diff - frame_interval
+                if loop_desync >= frame_interval:
+                    # Drop a frame when we are desynced by more than one frame
+                    cur_frame += 1
+                    loop_desync -= frame_interval
+                    total_desync -= frame_interval
+                    loop_dropped += 1
+                    total_dropped += 1
                 next_frame_interval = max(0, frame_interval - loop_desync)
                 if cur_frame >= len(frames):
                     cur_frame = 0
                     loop_desync = 0.0
+                    loop_dropped = 0
                     if not args.loop:
                         repeat = False
     except KeyboardInterrupt:
