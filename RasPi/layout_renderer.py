@@ -2,6 +2,7 @@ import argparse
 import json
 import os
 
+from fia_control import FIA
 from PIL import Image, ImageOps, ImageDraw
 
 
@@ -129,8 +130,9 @@ def main():
     parser.add_argument('--output', '-o', required=False, type=str)
     parser.add_argument('--layout', '-l', required=True, type=str)
     parser.add_argument('--font-dir', '-fd', required=True, type=str)
-    parser.add_argument('--data', '-d', required=True, type=str)
-    parser.add_argument('--rotation', '-r', required=False, type=int)
+    parser.add_argument('--width', '-w', required=True, type=int)
+    parser.add_argument('--height', '-h', required=True, type=int)
+    parser.add_argument('--data', '-d', action='append', nargs=2, metavar=("key", "value"))
     args = parser.parse_args()
     
     renderer = LayoutRenderer(args.font_dir)
@@ -138,18 +140,17 @@ def main():
     with open(args.layout, 'r', encoding='utf-8') as f:
         layout = json.load(f)
     
-    with open(args.data, 'r', encoding='utf-8') as f:
-        data = json.load(f)
+    data = {
+        'placeholders': dict(args.data) if args.data is not None else {}
+    }
     
     img = renderer.render(layout, data)
-    
-    if args.rotation:
-        img = img.rotate(args.rotation, expand=True)
     
     if args.output:
         img.save(args.output)
     else:
-        img.show()
+        fia = FIA("/dev/ttyAMA1", (3, 0))
+        fia.send_image(img)
 
 
 if __name__ == "__main__":
