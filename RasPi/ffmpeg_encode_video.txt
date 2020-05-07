@@ -1,0 +1,5 @@
+1. Crop (0 and 100 are x and y offsets)
+ffmpeg -i in.mp4 -filter:v "crop=480:128:0:100" temp.mp4
+
+2. Threshold (change "gray" to suitable threshold value if needed) and convert to GIF with appropriate frame rate (16.67 works best)
+ffmpeg -i temp.mp4 -f lavfi -i color=gray:s=480x128 -f lavfi -i color=black:s=480x128 -f lavfi -i color=white:s=480x128 -filter_complex threshold -r 16.67 out.gif
