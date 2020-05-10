@@ -552,7 +552,8 @@ void FIA_RegulateTempAndHumidity(void) {
         FIA_circulationFansOverrideHeatersTemp = 1;
     } else if (FIA_tempSensorValues[AIRFLOW] >= HEATERS_OFF_TEMP) {
         htrState = 0;
-        if (!FIA_circulationFansOverrideBLBallast && !FIA_circulationFansOverrideHeatersHumidity) {
+        if (FIA_circulationFansOverrideHeatersTemp && !FIA_circulationFansOverrideBLBallast &&
+            !FIA_circulationFansOverrideHeatersHumidity) {
             circState = 0;
         }
         FIA_circulationFansOverrideHeatersTemp = 0;
@@ -569,7 +570,8 @@ void FIA_RegulateTempAndHumidity(void) {
         FIA_circulationFansOverrideHeatersHumidity = 1;
     } else if (humidity <= HEATERS_OFF_HUMIDITY) {
         htrState = 0;
-        if (!FIA_circulationFansOverrideBLBallast && !FIA_circulationFansOverrideHeatersTemp) {
+        if (FIA_circulationFansOverrideHeatersHumidity && !FIA_circulationFansOverrideBLBallast &&
+            !FIA_circulationFansOverrideHeatersTemp) {
             circState = 0;
         }
         FIA_circulationFansOverrideHeatersHumidity = 0;
@@ -577,7 +579,8 @@ void FIA_RegulateTempAndHumidity(void) {
 
     if (FIA_tempSensorValues[AIRFLOW] >= HEATERS_CUTOFF_TEMP) {
         htrState = 0;
-        if (!FIA_circulationFansOverrideBLBallast && !FIA_circulationFansOverrideHeatersHumidity) {
+        if (FIA_circulationFansOverrideHeatersTemp && !FIA_circulationFansOverrideBLBallast &&
+            !FIA_circulationFansOverrideHeatersHumidity) {
             circState = 0;
         }
         FIA_circulationFansOverrideHeatersTemp = 0;
@@ -593,7 +596,8 @@ void FIA_RegulateTempAndHumidity(void) {
         circState = 2;
         FIA_circulationFansOverrideBLBallast = 1;
     } else if (FIA_tempSensorValues[BL_BALL] <= CIRCULATION_FANS_BL_BALLAST_OFF_TEMP) {
-        if (!FIA_circulationFansOverrideHeatersTemp && !FIA_circulationFansOverrideHeatersHumidity) {
+        if (FIA_circulationFansOverrideBLBallast && !FIA_circulationFansOverrideHeatersTemp &&
+            !FIA_circulationFansOverrideHeatersHumidity) {
             circState = 0;
         }
         FIA_circulationFansOverrideBLBallast = 0;
