@@ -50,8 +50,8 @@ void FIA_Init(void) {
     memset(FIA_maskBufferSideA, 0xFF, BITMAP_BUF_SIZE);
     memset(FIA_maskBufferSideB, 0xFF, BITMAP_BUF_SIZE);
 
-    FIA_SetLCDContrast(SIDE_A, 2200);
-    FIA_SetLCDContrast(SIDE_B, 2200);
+    FIA_SetLCDContrast(SIDE_A, 2048);
+    FIA_SetLCDContrast(SIDE_B, 2048);
 
     FIA_SetBacklightBrightness(SIDE_A, 0);
     FIA_SetBacklightBrightness(SIDE_B, 0);
