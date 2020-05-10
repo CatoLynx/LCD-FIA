@@ -94,9 +94,28 @@ void FIA_MainLoop(void) {
     FIA_UpdateDisplay(BUS_4);
 }
 
+void FIA_RenderScrollBuffers(void) {
+    if (FIA_scrollBufferCount == 0)
+        return;
+    FIA_Scroll_Buffer_t buffer;
+    for (uint8_t i = 0; i < MAX_SCROLL_BUFFERS; i++) {
+        buffer = FIA_scrollBuffers[i];
+        if (!buffer.occupied)
+            continue;
+    }
+}
+
 void FIA_UpdateDisplayBuffers(void) {
-    memcpy(FIA_displayBufferSideA, FIA_staticBufferSideA, BITMAP_BUF_SIZE);
-    memcpy(FIA_displayBufferSideB, FIA_staticBufferSideB, BITMAP_BUF_SIZE);
+    // Render scroll buffers
+    FIA_RenderScrollBuffers();
+
+    // Blend static and dynamic buffers
+    for (uint16_t i = 0; i < BITMAP_BUF_SIZE; i++) {
+        FIA_displayBufferSideA[i] =
+            (FIA_staticBufferSideA[i] & FIA_maskBufferSideA[i]) | (FIA_dynamicBufferSideA[i] & ~FIA_maskBufferSideA[i]);
+        FIA_displayBufferSideB[i] =
+            (FIA_staticBufferSideB[i] & FIA_maskBufferSideB[i]) | (FIA_dynamicBufferSideB[i] & ~FIA_maskBufferSideB[i]);
+    }
 }
 
 void FIA_UpdateDisplay(FIA_LCD_Bus_t bus) {
@@ -132,17 +151,17 @@ void FIA_StartBitmapReceive(void) {
     }
     if (HAL_SPI_Receive_DMA(&BITMAP_DATA_SPI, FIA_bitmapRxBuf, FIA_bitmapRxLen) == HAL_OK) {
         FIA_SetStatusLED(2, 1);
-        FIA_bitmapReceiveActive = 1;
+        FIA_bitmapRxActive = 1;
     }
 }
 
 void FIA_AbortBitmapReceive(void) {
-    if (!FIA_bitmapReceiveActive)
+    if (!FIA_bitmapRxActive)
         return;
     if (HAL_SPI_Abort(&BITMAP_DATA_SPI) == HAL_OK) {
         FIA_SetStatusLED(2, 0);
         FIA_SetStatusLED(1, 0);
-        FIA_bitmapReceiveActive = 0;
+        FIA_bitmapRxActive = 0;
     }
 }
 
@@ -609,7 +628,7 @@ void FIA_RegulateTempAndHumidity(void) {
 
 void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef* hspi) {
     if (hspi == &BITMAP_DATA_SPI) {
-        FIA_bitmapReceiveActive = 0;
+        FIA_bitmapRxActive = 0;
         FIA_SetStatusLED(2, 0);
         FIA_SetStatusLED(1, 1);
         if (FIA_bitmapRxBoth) {

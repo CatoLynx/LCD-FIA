@@ -95,16 +95,17 @@ typedef enum FIA_LCD_Bus { BUS_1 = 0, BUS_2 = 1, BUS_3 = 2, BUS_4 = 3 } FIA_LCD_
 typedef enum FIA_Temp_Sensor { BL_BALL = 0, AIRFLOW = 1, BOARD = 2, MCU = 3 } FIA_Temp_Sensor_t;
 
 typedef struct FIA_Scroll_Buffer {
-    uint8_t occupied;
-    FIA_Side_t side;
-    uint16_t dispX;
-    uint16_t dispY;
-    uint16_t dispW;
-    uint16_t dispH;
-    uint16_t intW;
-    uint16_t intH;
-    size_t bufSize;
-    uint8_t* buf;
+    uint8_t occupied;      // Whether this slot is in use
+    FIA_Side_t side;       // Which side of the display it applies to
+    uint16_t dispX;        // X coordinate of upper left corner of scroll window
+    uint16_t dispY;        // Y coordinate of upper left corner of scroll window
+    uint16_t dispW;        // Displayed width of the scroll window
+    uint16_t dispH;        // Displayed height of the scroll window
+    uint16_t intW;         // Internal width of the scroll buffer
+    uint16_t intH;         // Internal height of the scroll buffer (multiple of 8)
+    size_t bufSize;        // Size of the bitmap data buffer in bytes
+    uint8_t* buf;          // The bitmap data buffer
+    int16_t scrollOffsetX; // The current scroll viewport offset in X direction
 } FIA_Scroll_Buffer_t;
 
 // Variables for brightness sensors
@@ -122,13 +123,15 @@ uint8_t firstADCReadFlag;
 uint8_t firstADCAverageFlag;
 
 // Variables for receiving bitmap data from the high-level controller
-uint8_t FIA_bitmapReceiveActive;
 uint8_t FIA_staticBufferSideA[BITMAP_BUF_SIZE];
 uint8_t FIA_staticBufferSideB[BITMAP_BUF_SIZE];
+uint8_t FIA_dynamicBufferSideA[BITMAP_BUF_SIZE];
+uint8_t FIA_dynamicBufferSideB[BITMAP_BUF_SIZE];
 uint8_t FIA_maskBufferSideA[BITMAP_BUF_SIZE];
 uint8_t FIA_maskBufferSideB[BITMAP_BUF_SIZE];
 uint8_t FIA_displayBufferSideA[BITMAP_BUF_SIZE];
 uint8_t FIA_displayBufferSideB[BITMAP_BUF_SIZE];
+uint8_t FIA_bitmapRxActive;
 uint8_t* FIA_bitmapRxBuf;
 uint8_t FIA_bitmapRxBoth;
 uint16_t FIA_bitmapRxLen;
@@ -148,6 +151,7 @@ uint8_t FIA_circulationFansOverrideHeatersHumidity;
 void FIA_Init(void);
 void FIA_InitI2CDACs(void);
 void FIA_MainLoop(void);
+void FIA_RenderScrollBuffers(void);
 void FIA_UpdateDisplayBuffers(void);
 void FIA_UpdateDisplay(FIA_LCD_Bus_t bus);
 void FIA_StartBitmapReceive(void);
