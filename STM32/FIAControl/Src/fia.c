@@ -542,82 +542,90 @@ uint8_t FIA_SetBitmapDestinationBuffer(uint8_t id) {
 void FIA_RegulateTempAndHumidity(void) {
     int8_t htrState = -1, blBallState = -1, circState = -1, exchState = -1;
 
-    if (FIA_tempSensorValues[AIRFLOW] <= HEATERS_FULL_TEMP) {
-        htrState = 2;
-        circState = 2;
-        FIA_circulationFansOverrideHeatersTemp = 1;
-    } else if (FIA_tempSensorValues[AIRFLOW] <= HEATERS_HALF_TEMP) {
-        htrState = 1;
-        circState = 2;
-        FIA_circulationFansOverrideHeatersTemp = 1;
-    } else if (FIA_tempSensorValues[AIRFLOW] >= HEATERS_OFF_TEMP) {
+    if (FIA_GetDoors() != SIDE_NONE) {
+        // At least one door is open, disable all fans
         htrState = 0;
-        if (FIA_circulationFansOverrideHeatersTemp && !FIA_circulationFansOverrideBLBallast &&
-            !FIA_circulationFansOverrideHeatersHumidity) {
-            circState = 0;
-        }
-        FIA_circulationFansOverrideHeatersTemp = 0;
-    }
-
-    double humidity = FIA_GetHumidity();
-    if (humidity >= HEATERS_FULL_HUMIDITY) {
-        htrState = 2;
-        circState = 2;
-        FIA_circulationFansOverrideHeatersHumidity = 1;
-    } else if (humidity >= HEATERS_HALF_HUMIDITY) {
-        htrState = 1;
-        circState = 2;
-        FIA_circulationFansOverrideHeatersHumidity = 1;
-    } else if (humidity <= HEATERS_OFF_HUMIDITY) {
-        htrState = 0;
-        if (FIA_circulationFansOverrideHeatersHumidity && !FIA_circulationFansOverrideBLBallast &&
-            !FIA_circulationFansOverrideHeatersTemp) {
-            circState = 0;
-        }
-        FIA_circulationFansOverrideHeatersHumidity = 0;
-    }
-
-    if (FIA_tempSensorValues[AIRFLOW] >= HEATERS_CUTOFF_TEMP) {
-        htrState = 0;
-        if (FIA_circulationFansOverrideHeatersTemp && !FIA_circulationFansOverrideBLBallast &&
-            !FIA_circulationFansOverrideHeatersHumidity) {
-            circState = 0;
-        }
-        FIA_circulationFansOverrideHeatersTemp = 0;
-    }
-
-    if (FIA_tempSensorValues[BL_BALL] >= BL_BALLAST_FANS_ON_TEMP) {
-        blBallState = 1;
-    } else if (FIA_tempSensorValues[BL_BALL] <= BL_BALLAST_FANS_OFF_TEMP) {
         blBallState = 0;
-    }
-
-    if (FIA_tempSensorValues[BL_BALL] >= CIRCULATION_FANS_BL_BALLAST_ON_TEMP) {
-        circState = 2;
-        FIA_circulationFansOverrideBLBallast = 1;
-    } else if (FIA_tempSensorValues[BL_BALL] <= CIRCULATION_FANS_BL_BALLAST_OFF_TEMP) {
-        if (FIA_circulationFansOverrideBLBallast && !FIA_circulationFansOverrideHeatersTemp &&
-            !FIA_circulationFansOverrideHeatersHumidity) {
-            circState = 0;
-        }
-        FIA_circulationFansOverrideBLBallast = 0;
-    }
-
-    if (!FIA_circulationFansOverrideBLBallast && !FIA_circulationFansOverrideHeatersTemp &&
-        !FIA_circulationFansOverrideHeatersHumidity) {
-        if (FIA_tempSensorValues[AIRFLOW] >= CIRCULATION_FANS_FULL_TEMP) {
-            circState = 2;
-        } else if (FIA_tempSensorValues[AIRFLOW] >= CIRCULATION_FANS_HALF_TEMP) {
-            circState = 1;
-        } else if (FIA_tempSensorValues[AIRFLOW] <= CIRCULATION_FANS_OFF_TEMP) {
-            circState = 0;
-        }
-    }
-
-    if (FIA_tempSensorValues[AIRFLOW] >= HEAT_EXCHANGER_FAN_ON_TEMP) {
-        exchState = 1;
-    } else if (FIA_tempSensorValues[AIRFLOW] <= HEAT_EXCHANGER_FAN_OFF_TEMP) {
+        circState = 0;
         exchState = 0;
+    } else {
+        if (FIA_tempSensorValues[AIRFLOW] <= HEATERS_FULL_TEMP) {
+            htrState = 2;
+            circState = 2;
+            FIA_circulationFansOverrideHeatersTemp = 1;
+        } else if (FIA_tempSensorValues[AIRFLOW] <= HEATERS_HALF_TEMP) {
+            htrState = 1;
+            circState = 2;
+            FIA_circulationFansOverrideHeatersTemp = 1;
+        } else if (FIA_tempSensorValues[AIRFLOW] >= HEATERS_OFF_TEMP) {
+            htrState = 0;
+            if (FIA_circulationFansOverrideHeatersTemp && !FIA_circulationFansOverrideBLBallast &&
+                !FIA_circulationFansOverrideHeatersHumidity) {
+                circState = 0;
+            }
+            FIA_circulationFansOverrideHeatersTemp = 0;
+        }
+
+        double humidity = FIA_GetHumidity();
+        if (humidity >= HEATERS_FULL_HUMIDITY) {
+            htrState = 2;
+            circState = 2;
+            FIA_circulationFansOverrideHeatersHumidity = 1;
+        } else if (humidity >= HEATERS_HALF_HUMIDITY) {
+            htrState = 1;
+            circState = 2;
+            FIA_circulationFansOverrideHeatersHumidity = 1;
+        } else if (humidity <= HEATERS_OFF_HUMIDITY) {
+            htrState = 0;
+            if (FIA_circulationFansOverrideHeatersHumidity && !FIA_circulationFansOverrideBLBallast &&
+                !FIA_circulationFansOverrideHeatersTemp) {
+                circState = 0;
+            }
+            FIA_circulationFansOverrideHeatersHumidity = 0;
+        }
+
+        if (FIA_tempSensorValues[AIRFLOW] >= HEATERS_CUTOFF_TEMP) {
+            htrState = 0;
+            if (FIA_circulationFansOverrideHeatersTemp && !FIA_circulationFansOverrideBLBallast &&
+                !FIA_circulationFansOverrideHeatersHumidity) {
+                circState = 0;
+            }
+            FIA_circulationFansOverrideHeatersTemp = 0;
+        }
+
+        if (FIA_tempSensorValues[BL_BALL] >= BL_BALLAST_FANS_ON_TEMP) {
+            blBallState = 1;
+        } else if (FIA_tempSensorValues[BL_BALL] <= BL_BALLAST_FANS_OFF_TEMP) {
+            blBallState = 0;
+        }
+
+        if (FIA_tempSensorValues[BL_BALL] >= CIRCULATION_FANS_BL_BALLAST_ON_TEMP) {
+            circState = 2;
+            FIA_circulationFansOverrideBLBallast = 1;
+        } else if (FIA_tempSensorValues[BL_BALL] <= CIRCULATION_FANS_BL_BALLAST_OFF_TEMP) {
+            if (FIA_circulationFansOverrideBLBallast && !FIA_circulationFansOverrideHeatersTemp &&
+                !FIA_circulationFansOverrideHeatersHumidity) {
+                circState = 0;
+            }
+            FIA_circulationFansOverrideBLBallast = 0;
+        }
+
+        if (!FIA_circulationFansOverrideBLBallast && !FIA_circulationFansOverrideHeatersTemp &&
+            !FIA_circulationFansOverrideHeatersHumidity) {
+            if (FIA_tempSensorValues[AIRFLOW] >= CIRCULATION_FANS_FULL_TEMP) {
+                circState = 2;
+            } else if (FIA_tempSensorValues[AIRFLOW] >= CIRCULATION_FANS_HALF_TEMP) {
+                circState = 1;
+            } else if (FIA_tempSensorValues[AIRFLOW] <= CIRCULATION_FANS_OFF_TEMP) {
+                circState = 0;
+            }
+        }
+
+        if (FIA_tempSensorValues[AIRFLOW] >= HEAT_EXCHANGER_FAN_ON_TEMP) {
+            exchState = 1;
+        } else if (FIA_tempSensorValues[AIRFLOW] <= HEAT_EXCHANGER_FAN_OFF_TEMP) {
+            exchState = 0;
+        }
     }
 
     if (htrState != -1)
