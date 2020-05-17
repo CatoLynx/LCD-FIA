@@ -309,7 +309,8 @@ def get_coach_order_strings(data):
 
 def main():
     parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument('--layout', '-l', required=True, type=str)
+    parser.add_argument('--layout-single', '-ls', required=True, type=str)
+    parser.add_argument('--layout-double', '-ld', required=False, type=str)
     parser.add_argument('--font-dir', '-fd', required=True, type=str)
     parser.add_argument('--station', '-s', required=True, type=str)
     args = parser.parse_args()
@@ -320,65 +321,150 @@ def main():
     
     dbi = DBInfoscreen("dbf.finalrewind.org")
     
-    with open(args.layout, 'r', encoding='utf-8') as f:
-        layout = json.load(f)
+    with open(args.layout_single, 'r', encoding='utf-8') as f:
+        layout_single = json.load(f)
+    
+    if args.layout_double:
+        with open(args.layout_double, 'r', encoding='utf-8') as f:
+            layout_double = json.load(f)
+    else:
+        layout_double = layout_single
     
     COACH_ORDER_CACHE = {}
     while True:
         try:
-            trains = [train for train in dbi.calc_real_times(dbi.get_trains(args.station)) if train['actualDeparture'] is not None and not train['train'].startswith("Bus SEV")]
+            trains = [train for train in dbi.calc_real_times(dbi.get_trains(args.station)) if train['actualDeparture'] is not None and not train['train'].startswith("Bus SEV") and not train['train'].startswith("S ")]
             trains.sort(key=dbi.time_sort)
             
-            delay_next_1 = dbi.round_delay(trains[1]['delayDeparture'])
-            delay_next_2 = dbi.round_delay(trains[2]['delayDeparture'])
+            # If there are at least two trains, check if there are two trains that are coupled
+            if len(trains) >= 2:
+                search_length = min(len(trains), 5)
+                double_pair = None
+                x = 0
+                for y in range(search_length):
+                    if x == y:
+                        continue
+                    if trains[x]['scheduledDeparture'] == trains[y]['scheduledDeparture'] and trains[x]['scheduledPlatform'] == trains[y]['scheduledPlatform']:
+                        double_pair = (x, y)
+                        break
             
-            if delay_next_1 == -1:
-                delay_next_1 = ">210"
-            if delay_next_2 == -1:
-                delay_next_2 = ">210"
-            
-            if "F" in trains[0]['trainClasses']:
-                if trains[0]['train'] in COACH_ORDER_CACHE:
-                    order_sections, order_coaches = COACH_ORDER_CACHE[trains[0]['train']]
-                else:
-                    train_number = int(trains[0]['train'].split()[1])
-                    departure_time = datetime.datetime.strptime(trains[0]['scheduledDeparture'], "%H:%M").time()
-                    if departure_time < datetime.datetime.now().time():
-                        departure_date = datetime.date.today() + datetime.timedelta(days=1)
-                    else:
-                        departure_date = datetime.date.today()
-                    departure_dt = datetime.datetime.combine(departure_date, departure_time)
-                    departure = departure_dt.strftime("%Y%m%d%H%M")
-                    order_sections, order_coaches = get_coach_order_strings(dbi.get_coach_order(train_number, departure))
-                    COACH_ORDER_CACHE[trains[0]['train']] = (order_sections, order_coaches)
+            double = False
+            if double_pair:
+                double = True
+                x, y = double_pair
+                main_trains = [trains[x], trains[y]]
+                next_trains_set = set([i for i, t in enumerate(trains)])
+                next_trains_set -= set(double_pair)
+                next_trains_idx = list(next_trains_set)
+                next_trains = []
+                if len(next_trains_idx) >= 1:
+                    next_trains.append(trains[next_trains_idx[0]])
+                if len(next_trains_idx) >= 2:
+                    next_trains.append(trains[next_trains_idx[1]])
+            elif len(trains) >= 1:
+                main_trains = [trains[0]]
+                next_trains = []
+                if len(trains) >= 2:
+                    next_trains.append(trains[1])
+                if len(trains) >= 3:
+                    next_trains.append(trains[2])
             else:
-                order_sections = None
-                order_coaches = None
+                main_trains = []
+                next_trains = []
             
-            data = {
-                'placeholders': {
-                    'platform': str(trains[0]['scheduledPlatform']),
-                    'departure': trains[0]['scheduledDeparture'],
-                    'info': get_info_long(trains[0]),
-                    'train': get_train_number(trains[0]['train']),
-                    'order_sections': "\x25\x26\x27\x28\x29\x2a" if order_sections else None,
-                    'order_coaches': order_coaches,
-                    'via': " \xb4 ".join(map(get_via_name, trains[0]['via'][:2])),
-                    'destination': get_destination_name(trains[0]['destination']),
-                    'next_train_1_departure': trains[1]['scheduledDeparture'],
-                    'next_train_1_delay': "+{}".format(delay_next_1) if delay_next_1 else "",
-                    'next_train_2_departure': trains[2]['scheduledDeparture'],
-                    'next_train_2_delay': "+{}".format(delay_next_2) if delay_next_2 else "",
-                    'next_train_1_train': get_train_number(trains[1]['train']),
-                    'next_train_2_train': get_train_number(trains[2]['train']),
-                    'next_train_1_destination': get_destination_name(trains[1]['destination']),
-                    'next_train_1_info': get_info_short(trains[1]),
-                    'next_train_2_destination': get_destination_name(trains[2]['destination']),
-                    'next_train_2_info': get_info_short(trains[2])
-                }
-            }
-            
-            img = renderer.render(layout, data)
+            if not main_trains:
+                pass
+            else:
+                if len(next_trains) >= 1:
+                    delay_next_1 = dbi.round_delay(next_trains[0]['delayDeparture'])
+                else:
+                    delay_next_1 = 0
+                
+                if len(next_trains) >= 2:
+                    delay_next_2 = dbi.round_delay(next_trains[1]['delayDeparture'])
+                else:
+                    delay_next_2 = 0
+                
+                if delay_next_1 == -1:
+                    delay_next_1 = ">210"
+                if delay_next_2 == -1:
+                    delay_next_2 = ">210"
+                
+                if double:
+                    train1 = main_trains[0]
+                    train2 = main_trains[1]
+                    
+                    data = {
+                        'placeholders': {
+                            'platform': str(train1['scheduledPlatform']),
+                            'departure_1': train1['scheduledDeparture'],
+                            'info': get_info_long(train1),
+                            'train_1': get_train_number(train1['train']),
+                            'via_1': " \xb4 ".join(map(get_via_name, train1['via'][:2])),
+                            'destination_1': get_destination_name(train1['destination']),
+                            'departure_2': train2['scheduledDeparture'],
+                            'train_2': get_train_number(train2['train']),
+                            'via_2': " \xb4 ".join(map(get_via_name, train2['via'][:2])),
+                            'destination_2': get_destination_name(train2['destination']),
+                            'next_train_1_departure': next_trains[0]['scheduledDeparture'],
+                            'next_train_1_delay': "+{}".format(delay_next_1) if delay_next_1 else "",
+                            'next_train_2_departure': next_trains[1]['scheduledDeparture'],
+                            'next_train_2_delay': "+{}".format(delay_next_2) if delay_next_2 else "",
+                            'next_train_1_train': get_train_number(next_trains[0]['train']),
+                            'next_train_2_train': get_train_number(next_trains[1]['train']),
+                            'next_train_1_destination': get_destination_name(next_trains[0]['destination']),
+                            'next_train_1_info': get_info_short(next_trains[0]),
+                            'next_train_2_destination': get_destination_name(next_trains[1]['destination']),
+                            'next_train_2_info': get_info_short(next_trains[1])
+                        }
+                    }
+                    img = renderer.render(layout_double, data)
+                else:
+                    train = main_trains[0]
+                    if "F" in train['trainClasses']:
+                        if train['train'] in COACH_ORDER_CACHE:
+                            order_sections, order_coaches = COACH_ORDER_CACHE[train['train']]
+                        else:
+                            train_number = int(train['train'].split()[1])
+                            departure_time = datetime.datetime.strptime(train['scheduledDeparture'], "%H:%M").time()
+                            if departure_time < datetime.datetime.now().time():
+                                departure_date = datetime.date.today() + datetime.timedelta(days=1)
+                            else:
+                                departure_date = datetime.date.today()
+                            departure_dt = datetime.datetime.combine(departure_date, departure_time)
+                            departure = departure_dt.strftime("%Y%m%d%H%M")
+                            order_data = dbi.get_coach_order(train_number, departure)
+                            #print(order_data)
+                            order_sections, order_coaches = get_coach_order_strings(order_data)
+                            #print(order_sections, order_coaches)
+                            COACH_ORDER_CACHE[train['train']] = (order_sections, order_coaches)
+                    else:
+                        order_sections = None
+                        order_coaches = None
+                    
+                    data = {
+                        'placeholders': {
+                            'platform': str(train['scheduledPlatform']),
+                            'departure': train['scheduledDeparture'],
+                            'info': get_info_long(train),
+                            'train': get_train_number(train['train']),
+                            'order_sections': "\x25\x26\x27\x28\x29\x2a" if order_sections else None,
+                            'order_coaches': order_coaches,
+                            'via': " \xb4 ".join(map(get_via_name, train['via'][:2])),
+                            'destination': get_destination_name(train['destination']),
+                            'next_train_1_departure': next_trains[0]['scheduledDeparture'],
+                            'next_train_1_delay': "+{}".format(delay_next_1) if delay_next_1 else "",
+                            'next_train_2_departure': next_trains[1]['scheduledDeparture'],
+                            'next_train_2_delay': "+{}".format(delay_next_2) if delay_next_2 else "",
+                            'next_train_1_train': get_train_number(next_trains[0]['train']),
+                            'next_train_2_train': get_train_number(next_trains[1]['train']),
+                            'next_train_1_destination': get_destination_name(next_trains[0]['destination']),
+                            'next_train_1_info': get_info_short(next_trains[0]),
+                            'next_train_2_destination': get_destination_name(next_trains[1]['destination']),
+                            'next_train_2_info': get_info_short(next_trains[1])
+                        }
+                    }
+                    img = renderer.render(layout_single, data)
             fia.send_image(img)
             time.sleep(30)
         except KeyboardInterrupt:
