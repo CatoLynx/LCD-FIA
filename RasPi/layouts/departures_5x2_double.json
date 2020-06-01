@@ -19,6 +19,38 @@
             "default": ""
         },
         {
+            "name": "section",
+            "type": "text",
+            "x": 384,
+            "y": 50,
+            "width": 94,
+            "height": 14,
+            "pad_left": 0,
+            "pad_top": 0,
+            "inverted": false,
+            "font": "10_DBLCD",
+            "size": 0,
+            "align": "right",
+            "spacing": 1,
+            "default": ""
+        },
+        {
+            "name": "station",
+            "type": "text",
+            "x": 384,
+            "y": 50,
+            "width": 94,
+            "height": 14,
+            "pad_left": 0,
+            "pad_top": 0,
+            "inverted": false,
+            "font": "7_DBLCD",
+            "size": 0,
+            "align": "right",
+            "spacing": 1,
+            "default": ""
+        },
+        {
             "name": "departure_1",
             "type": "text",
             "x": 4,
