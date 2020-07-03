@@ -61,7 +61,7 @@ class LayoutRenderer:
             text_img = ImageOps.invert(text_img)
         return text_img
 
-    def render_image(self, width, height, pad_left, pad_top, value_img):
+    def render_image(self, width, height, pad_left, pad_top, inverted, value_img):
         new_img = Image.new(self.img_mode, (width, height), color=self.img_bg)
         new_img.paste(value_img, (pad_left, pad_top))
         if inverted:
