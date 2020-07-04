@@ -39,6 +39,23 @@ def render_frame(dispX, dispY, dispW, dispH, scrollOffsetX, scrollOffsetY):
     sbuf, intW, intH = img_to_array(sbuf_img)
     intHBytes = math.ceil(intH / 8)
     
+    baseBitOffset = dispY % 8
+    scrollBitOffset = scrollOffsetY - baseBitOffset
+    byteOffset, scrollBitOffset = divmod(scrollBitOffset, 8)
+    baseBitOffsetCmpl = 8 - baseBitOffset
+    scrollBitOffsetCmpl = 8 - scrollBitOffset
+    _print("byteOffset =", byteOffset)
+    _print("baseBitOffset =", baseBitOffset)
+    _print("scrollBitOffset =", scrollBitOffset)
+            
+    sbufWinAligned = (scrollBitOffset + baseBitOffset) % 8 == 0 # Scroll buffer is aligned to window
+    winDispAligned = baseBitOffset == 0                         # Window is aligned to display
+    sbufDispAligned = scrollBitOffset == 0                      # Scroll buffer is aligned to display
+    
+    _print("sbufWinAligned =", sbufWinAligned)
+    _print("winDispAligned =", winDispAligned)
+    _print("sbufDispAligned =", sbufDispAligned)
+    
     for x in range(dw):
         if x < dispX or x > dispX + dispW - 1:
             # X range check
@@ -47,30 +64,22 @@ def render_frame(dispX, dispY, dispW, dispH, scrollOffsetX, scrollOffsetY):
         sbufBaseIdx = ((x - dispX + scrollOffsetX) % intW) * intHBytes
         _print("sbufBaseIdx =", sbufBaseIdx)
         renderByteIdx = 0
-        byteOffset = 0
-        bitOffset = 0
         for yByte in range(0, dhBytes):
             _print("=" * 25)
             y1 = yByte * 8
             y2 = y1 + 7
+            
+            # Y range check: Does the display window intersect the current byte?
             if not (y1 <= dispY + dispH - 1 and dispY <= y2):
-                # Y range check: Does the display window intersect the current byte?
                 continue
             
-            if renderByteIdx == 0:
-                # Calculate offsets on first byte to render
-                baseBitOffset = (dispY - (yByte * 8)) % 8
-                scrollBitOffset = scrollOffsetY - (dispY - (yByte * 8))
-                byteOffset, scrollBitOffset = divmod(scrollBitOffset, 8)
-                _print("byteOffset =", byteOffset)
-                _print("baseBitOffset =", baseBitOffset)
-                _print("scrollBitOffset =", scrollBitOffset)
-            
             dispIdx = dispBaseIdx + yByte
-            sbufIdx = sbufBaseIdx + (renderByteIdx + byteOffset) % intHBytes
-            sbufPrevIdx = sbufBaseIdx + (renderByteIdx + byteOffset - 1) % intHBytes
-            sbufNextIdx = sbufBaseIdx + (renderByteIdx + byteOffset + 1) % intHBytes
+            sbufOffset = renderByteIdx + byteOffset
+            sbufIdx = sbufBaseIdx + (sbufOffset % intHBytes)
+            sbufPrevIdx = sbufBaseIdx + ((sbufOffset - 1) % intHBytes)
+            sbufNextIdx = sbufBaseIdx + ((sbufOffset + 1) % intHBytes)
             numRenderBytes = math.ceil((baseBitOffset + dispH) / 8)
+            nextFullByteH = (renderByteIdx + 1) * 8
             firstByte = renderByteIdx == 0
             lastByte = renderByteIdx >= numRenderBytes - 1
             
@@ -78,21 +87,13 @@ def render_frame(dispX, dispY, dispW, dispH, scrollOffsetX, scrollOffsetY):
             _print("renderByteIdx =", renderByteIdx)
             _print("firstByte =", firstByte)
             _print("lastByte =", lastByte)
-            
-            sbufWinAligned = scrollBitOffset == 8 - baseBitOffset   # Scroll buffer is aligned to window
-            winDispAligned = baseBitOffset == 0                 # Window is aligned to display
-            sbufDispAligned = scrollBitOffset == 0              # Scroll buffer is aligned to display
-            
-            _print("sbufWinAligned =", sbufWinAligned)
-            _print("winDispAligned =", winDispAligned)
-            _print("sbufDispAligned =", sbufDispAligned)
                 
             if sbufWinAligned and winDispAligned:
                 # Everything is aligned, bytes can just be copied.
                 # Last byte might have to be combined with display buffer
                 # depending on window height.
                 if lastByte:
-                    keepBits = (renderByteIdx + 1) * 8 - dispH
+                    keepBits = nextFullByteH - dispH
                     disp[dispIdx] =   (disp[dispIdx] & (0xFF << (8 - keepBits))) \
                                     | (sbuf[sbufIdx] & (0xFF >> keepBits))
                 else:
@@ -105,21 +106,21 @@ def render_frame(dispX, dispY, dispW, dispH, scrollOffsetX, scrollOffsetY):
                 # Scroll buffer bytes will be combined.
                 if firstByte and lastByte:
                     # Only one byte, so first = last
-                    keepBits = (renderByteIdx + 1) * 8 - baseBitOffset - dispH
+                    keepBits = nextFullByteH - baseBitOffset - dispH
                     _print("keepBits =", keepBits)
-                    keepMask = (0xFF >> (8 - baseBitOffset)) | (0xFF << (8 - keepBits))
+                    keepMask = (0xFF >> baseBitOffsetCmpl) | (0xFF << (8 - keepBits))
                     _print("keepMask =", "{:08b}".format(keepMask % 256))
                     disp[dispIdx] =   (disp[dispIdx] & keepMask) \
-                                    | (sbuf[sbufNextIdx] << (8 - scrollBitOffset)) & ~keepMask
+                                    | (sbuf[sbufNextIdx] << scrollBitOffsetCmpl) & ~keepMask
                 elif firstByte:
                     # First of multiple bytes
-                    keepMask = 0xFF >> (8 - baseBitOffset)
+                    keepMask = 0xFF >> baseBitOffsetCmpl
                     _print("keepMask =", "{:08b}".format(keepMask % 256))
                     disp[dispIdx] =   (disp[dispIdx] & keepMask) \
-                                    | ((sbuf[sbufNextIdx] << (8 - scrollBitOffset)) & ~keepMask)
+                                    | ((sbuf[sbufNextIdx] << scrollBitOffsetCmpl) & ~keepMask)
                 elif lastByte:
                     # Last of multiple bytes
-                    keepBits = (renderByteIdx + 1) * 8 - baseBitOffset - dispH
+                    keepBits = nextFullByteH - baseBitOffset - dispH
                     _print("keepBits =", keepBits)
                     keepMask = 0xFF << (8 - keepBits)
                     sbufMask = 0xFF >> scrollBitOffset
@@ -127,13 +128,13 @@ def render_frame(dispX, dispY, dispW, dispH, scrollOffsetX, scrollOffsetY):
                     _print("sbufMask =", "{:08b}".format(sbufMask % 256))
                     disp[dispIdx] =   (disp[dispIdx] & keepMask) \
                                     | ((sbuf[sbufIdx] >> scrollBitOffset) & sbufMask & ~keepMask) \
-                                    | ((sbuf[sbufNextIdx] << (8 - scrollBitOffset)) & ~sbufMask & ~keepMask)
+                                    | ((sbuf[sbufNextIdx] << scrollBitOffsetCmpl) & ~sbufMask & ~keepMask)
                 else:
                     # Inbetween byte
                     sbufMask = 0xFF >> scrollBitOffset
                     _print("sbufMask =", "{:08b}".format(sbufMask % 256))
                     disp[dispIdx] =   ((sbuf[sbufIdx] >> scrollBitOffset) & sbufMask) \
-                                    | ((sbuf[sbufNextIdx] << (8 - scrollBitOffset)) & ~sbufMask)
+                                    | ((sbuf[sbufNextIdx] << scrollBitOffsetCmpl) & ~sbufMask)
             elif not sbufWinAligned and winDispAligned:
                 # Scroll buffer is not aligned to the window
                 # but the window is aligned to the display.
@@ -141,19 +142,19 @@ def render_frame(dispX, dispY, dispW, dispH, scrollOffsetX, scrollOffsetY):
                 # depending on window height.
                 # Scroll buffer bytes will be combined even in the first byte.
                 if lastByte:
-                    keepBits = (renderByteIdx + 1) * 8 - dispH
+                    keepBits = nextFullByteH - dispH
                     keepMask = 0xFF << (8 - keepBits)
                     sbufMask = 0xFF >> scrollBitOffset
                     _print("keepMask =", "{:08b}".format(keepMask % 256))
                     _print("sbufMask =", "{:08b}".format(sbufMask % 256))
                     disp[dispIdx] =   (disp[dispIdx] & keepMask) \
                                     | ((sbuf[sbufIdx] >> scrollBitOffset) & sbufMask & ~keepMask) \
-                                    | ((sbuf[sbufNextIdx] << (8 - scrollBitOffset)) & ~sbufMask & ~keepMask)
+                                    | ((sbuf[sbufNextIdx] << scrollBitOffsetCmpl) & ~sbufMask & ~keepMask)
                 else:
                     sbufMask = 0xFF >> scrollBitOffset
                     _print("sbufMask =", "{:08b}".format(sbufMask % 256))
                     disp[dispIdx] =   ((sbuf[sbufIdx] >> scrollBitOffset) & sbufMask) \
-                                    | ((sbuf[sbufNextIdx] << (8 - scrollBitOffset)) & ~sbufMask)
+                                    | ((sbuf[sbufNextIdx] << scrollBitOffsetCmpl) & ~sbufMask)
             elif not sbufWinAligned and not winDispAligned and sbufDispAligned:
                 # Scroll buffer is not aligned to the window
                 # and the window is not aligned to the display,
@@ -164,21 +165,21 @@ def render_frame(dispX, dispY, dispW, dispH, scrollOffsetX, scrollOffsetY):
                 # Scroll buffer bytes will not be combined.
                 if firstByte and lastByte:
                     # Only one byte, so first = last
-                    keepBits = (renderByteIdx + 1) * 8 - baseBitOffset - dispH
+                    keepBits = nextFullByteH - baseBitOffset - dispH
                     _print("keepBits =", keepBits)
-                    keepMask = (0xFF >> (8 - baseBitOffset)) | (0xFF << (8 - keepBits))
+                    keepMask = (0xFF >> baseBitOffsetCmpl) | (0xFF << (8 - keepBits))
                     _print("keepMask =", "{:08b}".format(keepMask % 256))
                     disp[dispIdx] =   (disp[dispIdx] & keepMask) \
                                     | (sbuf[sbufIdx] & ~keepMask)
                 elif firstByte:
                     # First of multiple bytes
-                    keepMask = 0xFF >> (8 - baseBitOffset)
+                    keepMask = 0xFF >> baseBitOffsetCmpl
                     _print("keepMask =", "{:08b}".format(keepMask % 256))
                     disp[dispIdx] =   (disp[dispIdx] & keepMask) \
                                     | (sbuf[sbufIdx] & ~keepMask)
                 elif lastByte:
                     # Last of multiple bytes
-                    keepBits = (renderByteIdx + 1) * 8 - baseBitOffset - dispH
+                    keepBits = nextFullByteH - baseBitOffset - dispH
                     _print("keepBits =", keepBits)
                     keepMask = 0xFF << (8 - keepBits)
                     _print("keepMask =", "{:08b}".format(keepMask % 256))
@@ -197,27 +198,27 @@ def render_frame(dispX, dispY, dispW, dispH, scrollOffsetX, scrollOffsetY):
                 # Scroll buffer bytes will be combined.
                 if firstByte and lastByte:
                     # Only one byte, so first = last
-                    keepBits = (renderByteIdx + 1) * 8 - baseBitOffset - dispH
+                    keepBits = nextFullByteH - baseBitOffset - dispH
                     _print("keepBits =", keepBits)
-                    keepMask = (0xFF >> (8 - baseBitOffset)) | (0xFF << (8 - keepBits))
+                    keepMask = (0xFF >> baseBitOffsetCmpl) | (0xFF << (8 - keepBits))
                     sbufMask = 0xFF >> scrollBitOffset
                     _print("keepMask =", "{:08b}".format(keepMask % 256))
                     _print("sbufMask =", "{:08b}".format(sbufMask % 256))
                     disp[dispIdx] =   (disp[dispIdx] & keepMask) \
                                     | ((sbuf[sbufIdx] >> scrollBitOffset) & sbufMask & ~keepMask) \
-                                    | ((sbuf[sbufNextIdx] << (8 - scrollBitOffset)) & ~sbufMask & ~keepMask)
+                                    | ((sbuf[sbufNextIdx] << scrollBitOffsetCmpl) & ~sbufMask & ~keepMask)
                 elif firstByte:
                     # First of multiple bytes
-                    keepMask = 0xFF >> (8 - baseBitOffset)
+                    keepMask = 0xFF >> baseBitOffsetCmpl
                     sbufMask = 0xFF >> scrollBitOffset
                     _print("keepMask =", "{:08b}".format(keepMask % 256))
                     _print("sbufMask =", "{:08b}".format(sbufMask % 256))
                     disp[dispIdx] =   (disp[dispIdx] & keepMask) \
                                     | ((sbuf[sbufIdx] >> scrollBitOffset) & sbufMask & ~keepMask) \
-                                    | ((sbuf[sbufNextIdx] << (8 - scrollBitOffset)) & ~sbufMask & ~keepMask)
+                                    | ((sbuf[sbufNextIdx] << scrollBitOffsetCmpl) & ~sbufMask & ~keepMask)
                 elif lastByte:
                     # Last of multiple bytes
-                    keepBits = (renderByteIdx + 1) * 8 - baseBitOffset - dispH
+                    keepBits = nextFullByteH - baseBitOffset - dispH
                     _print("keepBits =", keepBits)
                     keepMask = 0xFF << (8 - keepBits)
                     sbufMask = 0xFF >> scrollBitOffset
@@ -225,13 +226,13 @@ def render_frame(dispX, dispY, dispW, dispH, scrollOffsetX, scrollOffsetY):
                     _print("sbufMask =", "{:08b}".format(sbufMask % 256))
                     disp[dispIdx] =   (disp[dispIdx] & keepMask) \
                                     | ((sbuf[sbufIdx] >> scrollBitOffset) & sbufMask & ~keepMask) \
-                                    | ((sbuf[sbufNextIdx] << (8 - scrollBitOffset)) & ~sbufMask & ~keepMask)
+                                    | ((sbuf[sbufNextIdx] << scrollBitOffsetCmpl) & ~sbufMask & ~keepMask)
                 else:
                     # Inbetween byte
                     sbufMask = 0xFF >> scrollBitOffset
                     _print("sbufMask =", "{:08b}".format(sbufMask % 256))
                     disp[dispIdx] =   ((sbuf[sbufIdx] >> scrollBitOffset) & sbufMask) \
-                                    | ((sbuf[sbufNextIdx] << (8 - scrollBitOffset)) & ~sbufMask)
+                                    | ((sbuf[sbufNextIdx] << scrollBitOffsetCmpl) & ~sbufMask)
             else:
                 _print("#" * 50)
                 raise RuntimeError
@@ -252,7 +253,7 @@ def main():
     r = random.randint
     
     dispX = 16
-    dispY = 16
+    dispY = 15
     dispW = 100
     dispH = 64
     scrollOffsetX = 0
@@ -263,14 +264,14 @@ def main():
     
     frames = []
     
-    for x in range(50):
+    for x in range(100):
         frame = render_frame(x//2, x//4, x*3, x, x*5, x*3)
         #frame = render_frame(r(0, 250), r(0, 75), r(5, 200), r(5, 100), r(0, 100), r(0, 100))
         #frame = render_frame(dispX, dispY, dispW, dispH, scrollOffsetX, x)
         frames.append(frame)
         #frame.save("{}.png".format(x))
     
-    frames[0].save("out.gif", save_all=True, append_images=frames[1:], duration=250, loop=True)
+    frames[0].save("out.gif", save_all=True, append_images=frames[1:], duration=50, loop=True)
 
 
 if __name__ == "__main__":
