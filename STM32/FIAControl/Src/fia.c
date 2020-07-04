@@ -7,6 +7,7 @@
 #include "stm32f4xx_hal.h"
 #include "uart_protocol.h"
 #include "util.h"
+#include <math.h>
 #include <string.h>
 
 int16_t backlightBaseBrightness[2] = {2048, 2048};
@@ -94,14 +95,276 @@ void FIA_MainLoop(void) {
     FIA_UpdateDisplay(BUS_4);
 }
 
+void FIA_ScrollBufferRelative(FIA_Scroll_Buffer_t* buf, int16_t xStep, int16_t yStep) {
+    // Scroll a scroll buffer by the specified number of steps
+    if (!buf->occupied)
+        return;
+    while (-xStep > buf->scrollOffsetX)
+        xStep += buf->intW;
+    while (-yStep > buf->scrollOffsetY)
+        yStep += buf->intH;
+    buf->scrollOffsetX += xStep;
+    buf->scrollOffsetY += yStep;
+    buf->scrollOffsetX %= buf->intW;
+    buf->scrollOffsetY %= buf->intH;
+}
+
+void FIA_RenderScrollBuffer(FIA_Scroll_Buffer_t buf) {
+    if (!buf.occupied || buf.side == SIDE_NONE)
+        return;
+    uint16_t intHBytes = buf.intH / 8;
+    uint8_t baseBitOffset = buf.dispY % 8;
+    int16_t scrollBitOffsetTmp = buf.scrollOffsetY - baseBitOffset;
+    int16_t byteOffset = scrollBitOffsetTmp / 8;
+    if (scrollBitOffsetTmp < 0)
+        byteOffset -= 1;
+    uint8_t scrollBitOffset = scrollBitOffsetTmp - (byteOffset * 8);
+    uint8_t baseBitOffsetCmpl = 8 - baseBitOffset;
+    uint8_t scrollBitOffsetCmpl = 8 - scrollBitOffset;
+    uint8_t sbufWinAligned = (scrollBitOffset + baseBitOffset) % 8 == 0;
+    uint8_t winDispAligned = baseBitOffset == 0;
+    uint8_t sbufDispAligned = scrollBitOffset == 0;
+    uint8_t renderA = buf.side == SIDE_A || buf.side == SIDE_BOTH;
+    uint8_t renderB = buf.side == SIDE_B || buf.side == SIDE_BOTH;
+    uint8_t* dispA = FIA_dynamicBufferSideA;
+    uint8_t* dispB = FIA_dynamicBufferSideB;
+
+    for (uint16_t x = 0; x < BITMAP_BUF_W_PX; x++) {
+        // Continue if we're outside the display window
+        if (x < buf.dispX || x > (buf.dispX + buf.dispW - 1))
+            continue;
+
+        uint16_t dispBaseIdx = x * BITMAP_BUF_H_BYTES;
+        uint16_t sbufBaseIdx = ((x - buf.dispX + buf.scrollOffsetX) % buf.intW) * intHBytes;
+        uint16_t renderByteIdx = 0;
+
+        for (uint16_t yByte = 0; yByte < BITMAP_BUF_H_BYTES; yByte++) {
+            uint16_t y1 = yByte * 8;
+            uint16_t y2 = y1 + 7;
+
+            // Y range check: Does the display window intersect the current byte?
+            if (!((y1 <= buf.dispY + buf.dispH - 1) && (buf.dispY <= y2)))
+                continue;
+
+            uint16_t dispIdx = dispBaseIdx + yByte;
+            uint16_t sbufOffset = renderByteIdx + byteOffset;
+            uint16_t sbufIdx = sbufBaseIdx + (sbufOffset % intHBytes);
+            uint16_t sbufNextIdx = sbufBaseIdx + ((sbufOffset + 1) % intHBytes);
+            uint16_t numRenderBytes = ceil((double)(baseBitOffset + buf.dispH) / 8.0);
+            uint16_t nextFullByteH = (renderByteIdx + 1) * 8;
+            uint8_t isFirstByte = renderByteIdx == 0;
+            uint8_t isLastByte = renderByteIdx >= numRenderBytes - 1;
+
+            if (sbufWinAligned && winDispAligned) {
+                // Everything is aligned, bytes can just be copied.
+                // Last byte might have to be combined with display buffer
+                // depending on window height.
+                if (isLastByte) {
+                    // Last byte - Combine existing display content
+                    // with scroll buffer content
+                    uint8_t keepBits = nextFullByteH - buf.dispH;
+                    if (renderA)
+                        dispA[dispIdx] =
+                            (dispA[dispIdx] & (0xFF << (8 - keepBits))) | (buf.buf[sbufIdx] & (0xFF >> keepBits));
+                    if (renderB)
+                        dispB[dispIdx] =
+                            (dispB[dispIdx] & (0xFF << (8 - keepBits))) | (buf.buf[sbufIdx] & (0xFF >> keepBits));
+                } else {
+                    // Any other byte - Copy straight from the scroll buffer
+                    if (renderA)
+                        dispA[dispIdx] = buf.buf[sbufIdx];
+                    if (renderB)
+                        dispB[dispIdx] = buf.buf[sbufIdx];
+                }
+            } else if (sbufWinAligned && !winDispAligned) {
+                // Scroll buffer is aligned to window
+                // but window is not aligned to display.
+                // First byte will be combined with display buffer,
+                // last byte might be combined depending on window height.
+                // Scroll buffer bytes will be combined.
+                if (isFirstByte && isLastByte) {
+                    // First and last byte - display window is only one byte high or less
+                    // Combine existing display content with scroll buffer content
+                    uint8_t keepBits = nextFullByteH - baseBitOffset - buf.dispH;
+                    uint8_t keepMask = (0xFF >> baseBitOffsetCmpl) | (0xFF << (8 - keepBits));
+                    if (renderA)
+                        dispA[dispIdx] =
+                            (dispA[dispIdx] & keepMask) | ((buf.buf[sbufNextIdx] << scrollBitOffsetCmpl) & ~keepMask);
+                    if (renderB)
+                        dispB[dispIdx] =
+                            (dispB[dispIdx] & keepMask) | ((buf.buf[sbufNextIdx] << scrollBitOffsetCmpl) & ~keepMask);
+                } else if (isFirstByte) {
+                    // First byte - Combine disp & 1 sbuf
+                    uint8_t keepMask = 0xFF >> baseBitOffsetCmpl;
+                    if (renderA)
+                        dispA[dispIdx] =
+                            (dispA[dispIdx] & keepMask) | ((buf.buf[sbufNextIdx] << scrollBitOffsetCmpl) & ~keepMask);
+                    if (renderB)
+                        dispB[dispIdx] =
+                            (dispB[dispIdx] & keepMask) | ((buf.buf[sbufNextIdx] << scrollBitOffsetCmpl) & ~keepMask);
+                } else if (isLastByte) {
+                    // Last byte - Combine disp & 2 sbuf
+                    uint8_t keepBits = nextFullByteH - baseBitOffset - buf.dispH;
+                    uint8_t keepMask = 0xFF << (8 - keepBits);
+                    uint8_t sbufMask = 0xFF >> scrollBitOffset;
+                    if (renderA)
+                        dispA[dispIdx] = (dispA[dispIdx] & keepMask) |
+                                         ((buf.buf[sbufIdx] >> scrollBitOffset) & sbufMask & ~keepMask) |
+                                         ((buf.buf[sbufNextIdx] << scrollBitOffsetCmpl) & ~sbufMask & ~keepMask);
+                    if (renderB)
+                        dispB[dispIdx] = (dispB[dispIdx] & keepMask) |
+                                         ((buf.buf[sbufIdx] >> scrollBitOffset) & sbufMask & ~keepMask) |
+                                         ((buf.buf[sbufNextIdx] << scrollBitOffsetCmpl) & ~sbufMask & ~keepMask);
+                } else {
+                    // Inbetween byte - Combine 2 sbuf
+                    uint8_t sbufMask = 0xFF >> scrollBitOffset;
+                    if (renderA)
+                        dispA[dispIdx] = ((buf.buf[sbufIdx] >> scrollBitOffset) & sbufMask) |
+                                         ((buf.buf[sbufNextIdx] << scrollBitOffsetCmpl) & ~sbufMask);
+                    if (renderB)
+                        dispB[dispIdx] = ((buf.buf[sbufIdx] >> scrollBitOffset) & sbufMask) |
+                                         ((buf.buf[sbufNextIdx] << scrollBitOffsetCmpl) & ~sbufMask);
+                }
+            } else if (!sbufWinAligned && winDispAligned) {
+                // Scroll buffer is not aligned to the window
+                // but the window is aligned to the display.
+                // Last byte will be combined with display buffer
+                // depending on window height.
+                // Scroll buffer bytes will be combined even in the first byte.
+                if (isLastByte) {
+                    // Last byte - Combine disp + 2 sbuf
+                    uint8_t keepBits = nextFullByteH - buf.dispH;
+                    uint8_t keepMask = 0xFF << (8 - keepBits);
+                    uint8_t sbufMask = 0xFF >> scrollBitOffset;
+                    if (renderA)
+                        dispA[dispIdx] = (dispA[dispIdx] & keepMask) |
+                                         ((buf.buf[sbufIdx] >> scrollBitOffset) & sbufMask & ~keepMask) |
+                                         ((buf.buf[sbufNextIdx] << scrollBitOffsetCmpl) & ~sbufMask & ~keepMask);
+                    if (renderB)
+                        dispB[dispIdx] = (dispB[dispIdx] & keepMask) |
+                                         ((buf.buf[sbufIdx] >> scrollBitOffset) & sbufMask & ~keepMask) |
+                                         ((buf.buf[sbufNextIdx] << scrollBitOffsetCmpl) & ~sbufMask & ~keepMask);
+                } else {
+                    // Any other byte - Combine 2 sbuf
+                    uint8_t sbufMask = 0xFF >> scrollBitOffset;
+                    if (renderA)
+                        dispA[dispIdx] = ((buf.buf[sbufIdx] >> scrollBitOffset) & sbufMask) |
+                                         ((buf.buf[sbufNextIdx] << scrollBitOffsetCmpl) & ~sbufMask);
+                    if (renderB)
+                        dispB[dispIdx] = ((buf.buf[sbufIdx] >> scrollBitOffset) & sbufMask) |
+                                         ((buf.buf[sbufNextIdx] << scrollBitOffsetCmpl) & ~sbufMask);
+                }
+            } else if (!sbufWinAligned && !winDispAligned && sbufDispAligned) {
+                // Scroll buffer is not aligned to the window
+                // and the window is not aligned to the display,
+                // but the scroll buffer is aligned to the display.
+                // First byte will be combined with display buffer,
+                // Last byte will be combined with display buffer
+                // depending on window height.
+                // Scroll buffer bytes will not be combined.
+                if (isFirstByte && isLastByte) {
+                    // First and last byte - display window is only one byte high or less
+                    // Combine disp + 1 sbuf
+                    uint8_t keepBits = nextFullByteH - baseBitOffset - buf.dispH;
+                    uint8_t keepMask = (0xFF >> baseBitOffsetCmpl) | (0xFF << (8 - keepBits));
+                    if (renderA)
+                        dispA[dispIdx] = (dispA[dispIdx] & keepMask) | (buf.buf[sbufIdx] & ~keepMask);
+                    if (renderB)
+                        dispB[dispIdx] = (dispB[dispIdx] & keepMask) | (buf.buf[sbufIdx] & ~keepMask);
+                } else if (isFirstByte) {
+                    // First byte - Combine disp + 1 sbuf
+                    uint8_t keepMask = 0xFF >> baseBitOffsetCmpl;
+                    if (renderA)
+                        dispA[dispIdx] = (dispA[dispIdx] & keepMask) | (buf.buf[sbufIdx] & ~keepMask);
+                    if (renderB)
+                        dispB[dispIdx] = (dispB[dispIdx] & keepMask) | (buf.buf[sbufIdx] & ~keepMask);
+                } else if (isLastByte) {
+                    // Last byte - Combine disp + 1 sbuf
+                    uint8_t keepBits = nextFullByteH - baseBitOffset - buf.dispH;
+                    uint8_t keepMask = 0xFF << (8 - keepBits);
+                    if (renderA)
+                        dispA[dispIdx] = (dispA[dispIdx] & keepMask) | (buf.buf[sbufIdx] & ~keepMask);
+                    if (renderB)
+                        dispB[dispIdx] = (dispB[dispIdx] & keepMask) | (buf.buf[sbufIdx] & ~keepMask);
+                } else {
+                    // Any other byte - Copy
+                    if (renderA)
+                        dispA[dispIdx] = buf.buf[sbufIdx];
+                    if (renderB)
+                        dispB[dispIdx] = buf.buf[sbufIdx];
+                }
+            } else if (!sbufWinAligned && !winDispAligned && !sbufDispAligned) {
+                // Scroll buffer is not aligned to the window
+                // and the window is not aligned to the display,
+                // and the scroll buffer is not aligned to the display.
+                // First byte will be combined with display buffer,
+                // Last byte will be combined with display buffer
+                // depending on window height.
+                // Scroll buffer bytes will be combined.
+                if (isFirstByte && isLastByte) {
+                    // First and last byte - display window is only one byte high or less
+                    // Combine disp + 2 sbuf
+                    uint8_t keepBits = nextFullByteH - baseBitOffset - buf.dispH;
+                    uint8_t keepMask = (0xFF >> baseBitOffsetCmpl) | (0xFF << (8 - keepBits));
+                    uint8_t sbufMask = 0xFF >> scrollBitOffset;
+                    if (renderA)
+                        dispA[dispIdx] = (dispA[dispIdx] & keepMask) |
+                                         ((buf.buf[sbufIdx] >> scrollBitOffset) & sbufMask & ~keepMask) |
+                                         ((buf.buf[sbufNextIdx] << scrollBitOffsetCmpl) & ~sbufMask & ~keepMask);
+                    if (renderB)
+                        dispB[dispIdx] = (dispB[dispIdx] & keepMask) |
+                                         ((buf.buf[sbufIdx] >> scrollBitOffset) & sbufMask & ~keepMask) |
+                                         ((buf.buf[sbufNextIdx] << scrollBitOffsetCmpl) & ~sbufMask & ~keepMask);
+                } else if (isFirstByte) {
+                    // First byte - Combine disp + 2 sbuf
+                    uint8_t keepMask = 0xFF >> baseBitOffsetCmpl;
+                    uint8_t sbufMask = 0xFF >> scrollBitOffset;
+                    if (renderA)
+                        dispA[dispIdx] = (dispA[dispIdx] & keepMask) |
+                                         ((buf.buf[sbufIdx] >> scrollBitOffset) & sbufMask & ~keepMask) |
+                                         ((buf.buf[sbufNextIdx] << scrollBitOffsetCmpl) & ~sbufMask & ~keepMask);
+                    if (renderB)
+                        dispB[dispIdx] = (dispB[dispIdx] & keepMask) |
+                                         ((buf.buf[sbufIdx] >> scrollBitOffset) & sbufMask & ~keepMask) |
+                                         ((buf.buf[sbufNextIdx] << scrollBitOffsetCmpl) & ~sbufMask & ~keepMask);
+                } else if (isLastByte) {
+                    // Last byte - Combine disp + 2 sbuf
+                    uint8_t keepBits = nextFullByteH - baseBitOffset - buf.dispH;
+                    uint8_t keepMask = 0xFF << (8 - keepBits);
+                    uint8_t sbufMask = 0xFF >> scrollBitOffset;
+                    if (renderA)
+                        dispA[dispIdx] = (dispA[dispIdx] & keepMask) |
+                                         ((buf.buf[sbufIdx] >> scrollBitOffset) & sbufMask & ~keepMask) |
+                                         ((buf.buf[sbufNextIdx] << scrollBitOffsetCmpl) & ~sbufMask & ~keepMask);
+                    if (renderB)
+                        dispB[dispIdx] = (dispB[dispIdx] & keepMask) |
+                                         ((buf.buf[sbufIdx] >> scrollBitOffset) & sbufMask & ~keepMask) |
+                                         ((buf.buf[sbufNextIdx] << scrollBitOffsetCmpl) & ~sbufMask & ~keepMask);
+                } else {
+                    // Any other byte - Combine 2 sbuf
+                    uint8_t sbufMask = 0xFF >> scrollBitOffset;
+                    if (renderA)
+                        dispA[dispIdx] = ((buf.buf[sbufIdx] >> scrollBitOffset) & sbufMask) |
+                                         ((buf.buf[sbufNextIdx] << scrollBitOffsetCmpl) & ~sbufMask);
+                    if (renderB)
+                        dispB[dispIdx] = ((buf.buf[sbufIdx] >> scrollBitOffset) & sbufMask) |
+                                         ((buf.buf[sbufNextIdx] << scrollBitOffsetCmpl) & ~sbufMask);
+                }
+            } else {
+                // This should never happen.
+                // Ignore if it does.
+            }
+
+            renderByteIdx++;
+        }
+    }
+}
+
 void FIA_RenderScrollBuffers(void) {
     if (FIA_scrollBufferCount == 0)
         return;
-    FIA_Scroll_Buffer_t buffer;
     for (uint8_t i = 0; i < MAX_SCROLL_BUFFERS; i++) {
-        buffer = FIA_scrollBuffers[i];
-        if (!buffer.occupied)
-            continue;
+        FIA_RenderScrollBuffer(FIA_scrollBuffers[i]);
     }
 }
 
@@ -517,12 +780,24 @@ uint8_t FIA_SetBitmapDestinationBuffer(uint8_t id) {
         FIA_bitmapRxBuf = FIA_staticBufferSideA;
         FIA_bitmapRxBoth = 1;
         FIA_bitmapRxLen = BITMAP_BUF_SIZE;
-    } else if (id & SCROLL_BUFFER_ID_MASK) {
-        if (!(id & SCROLL_BUFFER_ID_MASK)) {
-            return 0;
+    } else if (id & MASK_BUFFER_ID_MASK) {
+        id &= ~MASK_BUFFER_ID_MASK;
+        if (id == SIDE_A) {
+            FIA_bitmapRxBuf = FIA_maskBufferSideA;
+            FIA_bitmapRxBoth = 0;
+            FIA_bitmapRxLen = BITMAP_BUF_SIZE;
+        } else if (id == SIDE_B) {
+            FIA_bitmapRxBuf = FIA_maskBufferSideB;
+            FIA_bitmapRxBoth = 0;
+            FIA_bitmapRxLen = BITMAP_BUF_SIZE;
+        } else if (id == SIDE_BOTH) {
+            FIA_bitmapRxBuf = FIA_maskBufferSideA;
+            FIA_bitmapRxBoth = 1;
+            FIA_bitmapRxLen = BITMAP_BUF_SIZE;
         }
-        uint8_t bufIdx = id - SCROLL_BUFFER_ID_MASK;
-        if (!bufIdx || bufIdx >= MAX_SCROLL_BUFFERS) {
+    } else if (id & SCROLL_BUFFER_ID_MASK) {
+        uint8_t bufIdx = id & ~SCROLL_BUFFER_ID_MASK;
+        if (bufIdx >= MAX_SCROLL_BUFFERS) {
             return 0;
         }
         FIA_Scroll_Buffer_t* scrollBuffer = &FIA_scrollBuffers[bufIdx];
@@ -644,7 +919,11 @@ void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef* hspi) {
         FIA_SetStatusLED(2, 0);
         FIA_SetStatusLED(1, 1);
         if (FIA_bitmapRxBoth) {
-            memcpy(FIA_staticBufferSideB, FIA_staticBufferSideA, BITMAP_BUF_SIZE);
+            if (FIA_bitmapRxBuf == FIA_staticBufferSideA) {
+                memcpy(FIA_staticBufferSideB, FIA_staticBufferSideA, BITMAP_BUF_SIZE);
+            } else if (FIA_bitmapRxBuf == FIA_maskBufferSideA) {
+                memcpy(FIA_maskBufferSideB, FIA_maskBufferSideA, BITMAP_BUF_SIZE);
+            }
         }
     }
 }

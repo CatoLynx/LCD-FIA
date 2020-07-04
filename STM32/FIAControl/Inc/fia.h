@@ -57,14 +57,18 @@
 #define HALF_PANEL_NUM_BITMAP_BYTES 384
 #define NUM_PANEL_ROWS 2
 
-// Size of the bitmap data buffer (*2 because there are 2 LCD buses per side)
+// Size of the bitmap data buffer per side
 #define BITMAP_BUF_SIZE (HALF_PANEL_NUM_BITMAP_BYTES * NUM_HALF_PANELS * NUM_PANEL_ROWS)
 
 // Bitmap and scroll buffer related definitions
+#define BITMAP_BUF_H_PX (PANEL_HEIGHT * NUM_PANEL_ROWS)
+#define BITMAP_BUF_H_BYTES (BITMAP_BUF_H_PX / 8)
+#define BITMAP_BUF_W_PX (PANEL_WIDTH * NUM_PANELS)
 #define MAX_SCROLL_BUFFERS 20
 #define SCROLL_BUFFER_ID_MASK 0x80
 #define SCROLL_BUFFER_ERR_COUNT 0x41
 #define SCROLL_BUFFER_ERR_SIZE 0x42
+#define MASK_BUFFER_ID_MASK 0x40
 
 // Sensor related definitions
 #define ADC_AVG_COUNT 200
@@ -101,11 +105,14 @@ typedef struct FIA_Scroll_Buffer {
     uint16_t dispY;        // Y coordinate of upper left corner of scroll window
     uint16_t dispW;        // Displayed width of the scroll window
     uint16_t dispH;        // Displayed height of the scroll window
-    uint16_t intW;         // Internal width of the scroll buffer
-    uint16_t intH;         // Internal height of the scroll buffer (multiple of 8)
+    uint16_t intW;         // Internal width of the scroll buffer in pixels
+    uint16_t intH;         // Internal height of the scroll buffer in pixels (rounded up to a multiple of 8, used for bufSize calculation)
     size_t bufSize;        // Size of the bitmap data buffer in bytes
     uint8_t* buf;          // The bitmap data buffer
-    int16_t scrollOffsetX; // The current scroll viewport offset in X direction
+    uint16_t scrollOffsetX;// The current scroll viewport offset in X direction
+    uint16_t scrollOffsetY;// The current scroll viewport offset in Y direction
+    uint16_t scrollSpeedX; // The current scroll speed in Y direction
+    uint16_t scrollSpeedY; // The current scroll speed in Y direction
 } FIA_Scroll_Buffer_t;
 
 // Variables for brightness sensors
@@ -151,6 +158,8 @@ uint8_t FIA_circulationFansOverrideHeatersHumidity;
 void FIA_Init(void);
 void FIA_InitI2CDACs(void);
 void FIA_MainLoop(void);
+void FIA_ScrollBufferRelative(FIA_Scroll_Buffer_t* buf, int16_t xStep, int16_t yStep);
+void FIA_RenderScrollBuffer(FIA_Scroll_Buffer_t buf);
 void FIA_RenderScrollBuffers(void);
 void FIA_UpdateDisplayBuffers(void);
 void FIA_UpdateDisplay(FIA_LCD_Bus_t bus);
