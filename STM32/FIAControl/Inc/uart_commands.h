@@ -45,6 +45,7 @@
 #define UART_CMD_CREATE_SCROLL_BUFFER 0x60
 #define UART_CMD_DELETE_SCROLL_BUFFER 0x61
 #define UART_CMD_SET_DESTINATION_BUFFER 0x62
+#define UART_CMD_UPDATE_SCROLL_BUFFER 0x63
 
 // Function prototypes
 void UART_ProcessCommand(uint8_t command, uint8_t* parameters, uint8_t parameterLength);

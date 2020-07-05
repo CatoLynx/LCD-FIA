@@ -185,7 +185,14 @@ void UART_ProcessCommand(uint8_t command, uint8_t* parameters, uint8_t parameter
             uint16_t dispH = ((uint16_t)parameters[7] << 8) | parameters[8];
             uint16_t intW = ((uint16_t)parameters[9] << 8) | parameters[10];
             uint16_t intH = ((uint16_t)parameters[11] << 8) | parameters[12];
-            uint8_t id = FIA_CreateScrollBuffer(side, dispX, dispY, dispW, dispH, intW, intH);
+            uint16_t scOffX = ((uint16_t)parameters[13] << 8) | parameters[14];
+            uint16_t scOffY = ((uint16_t)parameters[15] << 8) | parameters[16];
+            uint16_t scSpX = ((uint16_t)parameters[17] << 8) | parameters[18];
+            uint16_t scSpY = ((uint16_t)parameters[19] << 8) | parameters[20];
+            int16_t scStX = ((int16_t)parameters[21] << 8) | parameters[22];
+            int16_t scStY = ((int16_t)parameters[23] << 8) | parameters[24];
+            uint8_t id = FIA_CreateScrollBuffer(side, dispX, dispY, dispW, dispH, intW, intH, scOffX, scOffY, scSpX,
+                                                scSpY, scStX, scStY);
 
             uartTxPayload[0] = id;
             break;
@@ -201,6 +208,28 @@ void UART_ProcessCommand(uint8_t command, uint8_t* parameters, uint8_t parameter
         case UART_CMD_SET_DESTINATION_BUFFER: {
             responseLength = 1;
             uint8_t status = FIA_SetBitmapDestinationBuffer(parameters[0]);
+            uartTxPayload[0] = status;
+            break;
+        }
+
+        case UART_CMD_UPDATE_SCROLL_BUFFER: {
+            responseLength = 1;
+
+            uint8_t id = parameters[0];
+            FIA_Side_t side = parameters[1];
+            uint16_t dispX = ((uint16_t)parameters[2] << 8) | parameters[3];
+            uint16_t dispY = ((uint16_t)parameters[4] << 8) | parameters[5];
+            uint16_t dispW = ((uint16_t)parameters[6] << 8) | parameters[7];
+            uint16_t dispH = ((uint16_t)parameters[8] << 8) | parameters[9];
+            uint16_t scOffX = ((uint16_t)parameters[10] << 8) | parameters[11];
+            uint16_t scOffY = ((uint16_t)parameters[12] << 8) | parameters[13];
+            uint16_t scSpX = ((uint16_t)parameters[14] << 8) | parameters[15];
+            uint16_t scSpY = ((uint16_t)parameters[16] << 8) | parameters[17];
+            int16_t scStX = ((int16_t)parameters[18] << 8) | parameters[19];
+            int16_t scStY = ((int16_t)parameters[20] << 8) | parameters[21];
+            uint8_t status = FIA_UpdateScrollBuffer(id, side, dispX, dispY, dispW, dispH, scOffX, scOffY, scSpX,
+                                                scSpY, scStX, scStY);
+
             uartTxPayload[0] = status;
             break;
         }

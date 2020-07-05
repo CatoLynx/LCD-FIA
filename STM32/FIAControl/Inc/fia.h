@@ -22,11 +22,12 @@
 #define LCD_SPI_ROW_3 hspi3
 #define LCD_SPI_ROW_4 hspi4
 #define BITMAP_DATA_SPI hspi5
-#define LCD_FRAME_TIMER htim1
+#define LCD_FRAME_TIMER htim1 // f: See LCD_FR_INTERVAL comment
 #define LCD_FRAME_TIMER_CHANNEL TIM_CHANNEL_1
-#define DELAY_US_TIMER htim2
-#define ADC_UPDATE_TIMER htim3
-#define DS18B20_UPDATE_TIMER htim4
+#define DELAY_US_TIMER htim2       // No fixed frequency, used for delay
+#define ADC_UPDATE_TIMER htim3     // f = 16 Hz
+#define DS18B20_UPDATE_TIMER htim4 // f = 0.2 Hz
+#define SCROLL_UPDATE_TIMER htim5  // f = 100 Hz
 #define LCD_CONTRAST_DAC hdac
 #define ENV_BRIGHTNESS_ADC hadc1
 #define ADC_NUM_CHANNELS 3
@@ -45,7 +46,7 @@
 
 // LCD related definitions
 #define NUM_LCD_BUSES 4
-#define LCD_FR_INTERVAL 1400 // Must be even. Formula: x = F_CPU/200/f
+#define LCD_FR_INTERVAL 1400 // Must be even. Formula: i = F_CPU/(200*f) or f = F_CPU/(200*i)
 
 // How many panels are daisy-chained.
 // This assumes that first all top halves of each display
@@ -99,20 +100,25 @@ typedef enum FIA_LCD_Bus { BUS_1 = 0, BUS_2 = 1, BUS_3 = 2, BUS_4 = 3 } FIA_LCD_
 typedef enum FIA_Temp_Sensor { BL_BALL = 0, AIRFLOW = 1, BOARD = 2, MCU = 3 } FIA_Temp_Sensor_t;
 
 typedef struct FIA_Scroll_Buffer {
-    uint8_t occupied;      // Whether this slot is in use
-    FIA_Side_t side;       // Which side of the display it applies to
-    uint16_t dispX;        // X coordinate of upper left corner of scroll window
-    uint16_t dispY;        // Y coordinate of upper left corner of scroll window
-    uint16_t dispW;        // Displayed width of the scroll window
-    uint16_t dispH;        // Displayed height of the scroll window
-    uint16_t intW;         // Internal width of the scroll buffer in pixels
-    uint16_t intH;         // Internal height of the scroll buffer in pixels (rounded up to a multiple of 8, used for bufSize calculation)
-    size_t bufSize;        // Size of the bitmap data buffer in bytes
-    uint8_t* buf;          // The bitmap data buffer
-    uint16_t scrollOffsetX;// The current scroll viewport offset in X direction
-    uint16_t scrollOffsetY;// The current scroll viewport offset in Y direction
-    uint16_t scrollSpeedX; // The current scroll speed in Y direction
-    uint16_t scrollSpeedY; // The current scroll speed in Y direction
+    uint8_t occupied; // Whether this slot is in use
+    FIA_Side_t side;  // Which side of the display it applies to
+    uint16_t dispX;   // X coordinate of upper left corner of scroll window
+    uint16_t dispY;   // Y coordinate of upper left corner of scroll window
+    uint16_t dispW;   // Displayed width of the scroll window
+    uint16_t dispH;   // Displayed height of the scroll window
+    uint16_t intW;    // Internal width of the scroll buffer in pixels
+    uint16_t intH;    // Internal height of the scroll buffer in pixels (rounded up to multiple of 8, used for bufSize
+                      // calculation)
+    size_t bufSize;   // Size of the bitmap data buffer in bytes
+    uint8_t* buf;     // The bitmap data buffer
+    uint16_t scrollOffsetX; // The current scroll viewport offsets
+    uint16_t scrollOffsetY;
+    uint16_t scrollSpeedX; // Scroll interval (= 100 Hz / speed)
+    uint16_t scrollSpeedY;
+    int16_t scrollStepX; // Scroll by (step) pixels each interval
+    int16_t scrollStepY;
+    uint16_t scrollTickCntX; // Internal counters for the number of scroll timer ticks
+    uint16_t scrollTickCntY;
 } FIA_Scroll_Buffer_t;
 
 // Variables for brightness sensors
@@ -158,6 +164,7 @@ uint8_t FIA_circulationFansOverrideHeatersHumidity;
 void FIA_Init(void);
 void FIA_InitI2CDACs(void);
 void FIA_MainLoop(void);
+void FIA_UpdateScrollPositions();
 void FIA_ScrollBufferRelative(FIA_Scroll_Buffer_t* buf, int16_t xStep, int16_t yStep);
 void FIA_RenderScrollBuffer(FIA_Scroll_Buffer_t buf);
 void FIA_RenderScrollBuffers(void);
@@ -192,7 +199,11 @@ void FIA_ReadTempSensors(void);
 double FIA_GetTemperature(FIA_Temp_Sensor_t sensor);
 double FIA_GetHumidity();
 uint8_t FIA_CreateScrollBuffer(FIA_Side_t side, uint16_t dispX, uint16_t dispY, uint16_t dispW, uint16_t dispH,
-                               uint16_t intW, uint16_t intH);
+                               uint16_t intW, uint16_t intH, uint16_t scOffX, uint16_t scOffY, uint16_t scSpX,
+                               uint16_t scSpY, int16_t scStX, int16_t scStY);
+uint8_t FIA_UpdateScrollBuffer(uint8_t id, FIA_Side_t side, uint16_t dispX, uint16_t dispY, uint16_t dispW,
+                               uint16_t dispH, uint16_t scOffX, uint16_t scOffY, uint16_t scSpX, uint16_t scSpY,
+                               int16_t scStX, int16_t scStY);
 uint8_t FIA_DeleteScrollBuffer(uint8_t id);
 void FIA_UpdateNextFreeScrollBufferIndex(void);
 uint8_t FIA_SetBitmapDestinationBuffer(uint8_t id);

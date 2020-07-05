@@ -30,6 +30,8 @@ void FIA_Init(void) {
     HAL_TIM_Base_Start_IT(&ADC_UPDATE_TIMER);
     HAL_TIM_Base_Start(&DS18B20_UPDATE_TIMER);
     HAL_TIM_Base_Start_IT(&DS18B20_UPDATE_TIMER);
+    HAL_TIM_Base_Start(&SCROLL_UPDATE_TIMER);
+    HAL_TIM_Base_Start_IT(&SCROLL_UPDATE_TIMER);
     HAL_DAC_Start(&LCD_CONTRAST_DAC, DAC1_CHANNEL_1);
     HAL_DAC_Start(&LCD_CONTRAST_DAC, DAC1_CHANNEL_2);
     HAL_ADC_Start_DMA(&ENV_BRIGHTNESS_ADC, adcValues, ADC_NUM_CHANNELS);
@@ -88,6 +90,7 @@ void FIA_MainLoop(void) {
         oldDoorStatus = doorStatus;
     }
 
+    FIA_UpdateScrollPositions();
     FIA_UpdateDisplayBuffers();
     FIA_UpdateDisplay(BUS_1);
     FIA_UpdateDisplay(BUS_2);
@@ -95,18 +98,42 @@ void FIA_MainLoop(void) {
     FIA_UpdateDisplay(BUS_4);
 }
 
+void FIA_UpdateScrollPositions() {
+    // Called via timer interrupt.
+    // Update all scroll positions as necessary
+    for (uint8_t i = 0; i < MAX_SCROLL_BUFFERS; i++) {
+        FIA_Scroll_Buffer_t* buf = &FIA_scrollBuffers[i];
+        if (!buf->occupied)
+            continue;
+        buf->scrollTickCntX++;
+        buf->scrollTickCntY++;
+        if (buf->scrollSpeedX != 0 && buf->scrollTickCntX >= buf->scrollSpeedX) {
+            FIA_ScrollBufferRelative(buf, buf->scrollStepX, 0);
+            buf->scrollTickCntX = 0;
+        }
+        if (buf->scrollSpeedY != 0 && buf->scrollTickCntY >= buf->scrollSpeedY) {
+            FIA_ScrollBufferRelative(buf, 0, buf->scrollStepY);
+            buf->scrollTickCntY = 0;
+        }
+    }
+}
+
 void FIA_ScrollBufferRelative(FIA_Scroll_Buffer_t* buf, int16_t xStep, int16_t yStep) {
     // Scroll a scroll buffer by the specified number of steps
     if (!buf->occupied)
         return;
-    while (-xStep > buf->scrollOffsetX)
-        xStep += buf->intW;
-    while (-yStep > buf->scrollOffsetY)
-        yStep += buf->intH;
-    buf->scrollOffsetX += xStep;
-    buf->scrollOffsetY += yStep;
-    buf->scrollOffsetX %= buf->intW;
-    buf->scrollOffsetY %= buf->intH;
+    if (xStep != 0) {
+        while (-xStep > buf->scrollOffsetX)
+            xStep += buf->intW;
+        buf->scrollOffsetX += xStep;
+        buf->scrollOffsetX %= buf->intW;
+    }
+    if (yStep != 0) {
+        while (-yStep > buf->scrollOffsetY)
+            yStep += buf->intH;
+        buf->scrollOffsetY += yStep;
+        buf->scrollOffsetY %= buf->intH;
+    }
 }
 
 void FIA_RenderScrollBuffer(FIA_Scroll_Buffer_t buf) {
@@ -696,7 +723,8 @@ double FIA_GetHumidity() {
 }
 
 uint8_t FIA_CreateScrollBuffer(FIA_Side_t side, uint16_t dispX, uint16_t dispY, uint16_t dispW, uint16_t dispH,
-                               uint16_t intW, uint16_t intH) {
+                               uint16_t intW, uint16_t intH, uint16_t scOffX, uint16_t scOffY, uint16_t scSpX,
+                               uint16_t scSpY, int16_t scStX, int16_t scStY) {
     if (FIA_scrollBufferCount >= MAX_SCROLL_BUFFERS || FIA_nextFreeScrollBufferIndex == -1) {
         return SCROLL_BUFFER_ERR_COUNT;
     }
@@ -717,12 +745,73 @@ uint8_t FIA_CreateScrollBuffer(FIA_Side_t side, uint16_t dispX, uint16_t dispY, 
     scrollBuffer->dispH = dispH;
     scrollBuffer->intW = intW;
     scrollBuffer->intH = intH;
+    scrollBuffer->scrollOffsetX = scOffX;
+    scrollBuffer->scrollOffsetY = scOffY;
+    scrollBuffer->scrollSpeedX = scSpX;
+    scrollBuffer->scrollSpeedY = scSpY;
+    scrollBuffer->scrollStepX = scStX;
+    scrollBuffer->scrollStepY = scStY;
     scrollBuffer->bufSize = bufSize;
     scrollBuffer->buf = buf;
     uint8_t ret = FIA_nextFreeScrollBufferIndex | SCROLL_BUFFER_ID_MASK;
     FIA_UpdateNextFreeScrollBufferIndex();
     FIA_scrollBufferCount++;
     return ret;
+}
+
+uint8_t FIA_UpdateScrollBuffer(uint8_t id, FIA_Side_t side, uint16_t dispX, uint16_t dispY, uint16_t dispW,
+                               uint16_t dispH, uint16_t scOffX, uint16_t scOffY, uint16_t scSpX, uint16_t scSpY,
+                               int16_t scStX, int16_t scStY) {
+    if (!(id & SCROLL_BUFFER_ID_MASK)) {
+        return 0;
+    }
+    uint8_t bufIdx = id - SCROLL_BUFFER_ID_MASK;
+    if (bufIdx >= MAX_SCROLL_BUFFERS) {
+        return 0;
+    }
+    FIA_Scroll_Buffer_t* scrollBuffer = &FIA_scrollBuffers[bufIdx];
+    if (!scrollBuffer->occupied || scrollBuffer->buf == NULL) {
+        return 0;
+    }
+
+    // Changes to display position or size require the dynamic buffers
+    // to be cleared to clear out sticky scroll buffer residue
+    uint8_t bufferResetNeeded = 0;
+
+    if (side != 0xFF)
+        scrollBuffer->side = side;
+    bufferResetNeeded = 1;
+    if (dispX != 0xFFFF)
+        scrollBuffer->dispX = dispX;
+    bufferResetNeeded = 1;
+    if (dispY != 0xFFFF)
+        scrollBuffer->dispY = dispY;
+    bufferResetNeeded = 1;
+    if (dispW != 0xFFFF)
+        scrollBuffer->dispW = dispW;
+    bufferResetNeeded = 1;
+    if (dispH != 0xFFFF)
+        scrollBuffer->dispH = dispH;
+    bufferResetNeeded = 1;
+    if (scOffX != 0xFFFF)
+        scrollBuffer->scrollOffsetX = scOffX;
+    if (scOffY != 0xFFFF)
+        scrollBuffer->scrollOffsetY = scOffY;
+    if (scSpX != 0xFFFF)
+        scrollBuffer->scrollSpeedX = scSpX;
+    if (scSpY != 0xFFFF)
+        scrollBuffer->scrollSpeedY = scSpY;
+    if (scStX != 0x7FFF)
+        scrollBuffer->scrollStepX = scStX;
+    if (scStY != 0x7FFF)
+        scrollBuffer->scrollStepY = scStY;
+
+    if (bufferResetNeeded) {
+        memset(FIA_dynamicBufferSideA, 0x00, BITMAP_BUF_SIZE);
+        memset(FIA_dynamicBufferSideB, 0x00, BITMAP_BUF_SIZE);
+    }
+
+    return 1;
 }
 
 uint8_t FIA_DeleteScrollBuffer(uint8_t id) {
@@ -750,10 +839,24 @@ uint8_t FIA_DeleteScrollBuffer(uint8_t id) {
     scrollBuffer->dispH = 0;
     scrollBuffer->intW = 0;
     scrollBuffer->intH = 0;
+    scrollBuffer->scrollOffsetX = 0;
+    scrollBuffer->scrollOffsetY = 0;
+    scrollBuffer->scrollSpeedX = 0;
+    scrollBuffer->scrollSpeedY = 0;
+    scrollBuffer->scrollStepX = 0;
+    scrollBuffer->scrollStepY = 0;
+    scrollBuffer->scrollTickCntX = 0;
+    scrollBuffer->scrollTickCntY = 0;
     scrollBuffer->bufSize = 0;
     scrollBuffer->buf = NULL;
     FIA_UpdateNextFreeScrollBufferIndex();
     FIA_scrollBufferCount--;
+
+    // Deletion of scroll buffers requires the dynamic buffers
+    // to be cleared to clear out sticky scroll buffer residue
+    memset(FIA_dynamicBufferSideA, 0x00, BITMAP_BUF_SIZE);
+    memset(FIA_dynamicBufferSideB, 0x00, BITMAP_BUF_SIZE);
+
     return 1;
 }
 
