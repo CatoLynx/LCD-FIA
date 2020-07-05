@@ -5,6 +5,13 @@ import time
 from PIL import Image, ImageSequence
 
 class FIA:
+    SIDE_A = 0x01
+    SIDE_B = 0x02
+    SIDE_BOTH = 0x03
+    
+    BUF_MASK = 0x40
+    BUF_SCROLL = 0x40
+    
     UART_CMD_NULL = 0x00
     UART_CMD_MCU_RESET = 0x01
     
@@ -31,6 +38,11 @@ class FIA:
     
     UART_CMD_SET_LCD_CONTRAST = 0x50
     UART_CMD_GET_LCD_CONTRAST = 0x51
+    
+    UART_CMD_CREATE_SCROLL_BUFFER = 0x60
+    UART_CMD_DELETE_SCROLL_BUFFER = 0x61
+    UART_CMD_SET_DESTINATION_BUFFER = 0x62
+    UART_CMD_UPDATE_SCROLL_BUFFER = 0x63
     
     def __init__(self, uart_port, spi_port, uart_baud = 115200, uart_timeout = 1.0, spi_clock = 5000000, width = 480, height = 128, panel_width = 96, panel_height = 64):
         self.uart = serial.Serial(uart_port, baudrate=uart_baud, timeout=uart_timeout)
@@ -185,6 +197,55 @@ class FIA:
         side_b = (resp[2] << 8) | resp[3]
         return side_a, side_b
     
+    def create_scroll_buffer(self, side, disp_x, disp_y, disp_w, disp_h, int_w, int_h, sc_off_x, sc_off_y, sc_sp_x, sc_sp_y, sc_st_x, sc_st_y):
+        sc_st_x = self.twos_comp(sc_st_x, 16)
+        sc_st_y = self.twos_comp(sc_st_y, 16)
+        params = [
+            side,
+            disp_x >> 8, disp_x & 0xFF,
+            disp_y >> 8, disp_y & 0xFF,
+            disp_w >> 8, disp_w & 0xFF,
+            disp_h >> 8, disp_h & 0xFF,
+            int_w >> 8, int_w & 0xFF,
+            int_h >> 8, int_h & 0xFF,
+            sc_off_x >> 8,sc_off_x & 0xFF,
+            sc_off_y >> 8,sc_off_y & 0xFF,
+            sc_sp_x >> 8,sc_sp_x & 0xFF,
+            sc_sp_y >> 8,sc_sp_y & 0xFF,
+            sc_st_x >> 8,sc_st_x & 0xFF,
+            sc_st_y >> 8,sc_st_y & 0xFF,
+        ]
+        resp = self.send_uart_command(self.UART_CMD_CREATE_SCROLL_BUFFER, params)
+        return resp[0]
+    
+    def delete_scroll_buffer(self, buf_id):
+        resp = self.send_uart_command(self.UART_CMD_DELETE_SCROLL_BUFFER, [buf_id])
+        return resp[0]
+    
+    def set_destination_buffer(self, buf_id):
+        resp = self.send_uart_command(self.UART_CMD_SET_DESTINATION_BUFFER, [buf_id])
+        return resp[0]
+    
+    def update_scroll_buffer(self, buf_id, side = 0xFF, disp_x = 0xFFFF, disp_y = 0xFFFF, disp_w = 0xFFFF, disp_h = 0xFFFF, sc_off_x = 0xFFFF, sc_off_y = 0xFFFF, sc_sp_x = 0xFFFF, sc_sp_y = 0xFFFF, sc_st_x = 0x7FFF, sc_st_y = 0x7FFF):
+        sc_st_x = self.twos_comp(sc_st_x, 16)
+        sc_st_y = self.twos_comp(sc_st_y, 16)
+        params = [
+            buf_id,
+            side,
+            disp_x >> 8, disp_x & 0xFF,
+            disp_y >> 8, disp_y & 0xFF,
+            disp_w >> 8, disp_w & 0xFF,
+            disp_h >> 8, disp_h & 0xFF,
+            sc_off_x >> 8,sc_off_x & 0xFF,
+            sc_off_y >> 8,sc_off_y & 0xFF,
+            sc_sp_x >> 8,sc_sp_x & 0xFF,
+            sc_sp_y >> 8,sc_sp_y & 0xFF,
+            sc_st_x >> 8,sc_st_x & 0xFF,
+            sc_st_y >> 8,sc_st_y & 0xFF,
+        ]
+        resp = self.send_uart_command(self.UART_CMD_UPDATE_SCROLL_BUFFER, params)
+        return resp[0]
+    
     def img_to_array(self, img):
         pixels = img.load()
         width, height = img.size
@@ -207,23 +268,25 @@ class FIA:
         length = len(array)
         self.spi.writebytes2(bytearray(array))
 
-    def send_image(self, img):
+    def send_image(self, img, auto_fit = True):
         if not isinstance(img, Image.Image):
             img = Image.open(img)
         
         img = img.convert('L')
-        width, height = img.size
-        if width > self.width and height > self.height:
-            img = img.crop((0, 0, self.width, self.height))
-        else:
-            img2 = Image.new('L', (self.width, self.height), 'black')
-            img2.paste(img, (0, 0))
-            img = img2
+        
+        if auto_fit:
+            width, height = img.size
+            if width > self.width and height > self.height:
+                img = img.crop((0, 0, self.width, self.height))
+            else:
+                img2 = Image.new('L', (self.width, self.height), 'black')
+                img2.paste(img, (0, 0))
+                img = img2
         
         array, width, height = self.img_to_array(img)
         self.send_array(array)
     
-    def send_gif(self, img):
+    def send_gif(self, img, auto_fit = True):
         if not isinstance(img, Image.Image):
             img = Image.open(img)
         
@@ -232,20 +295,25 @@ class FIA:
         
         frames = []
         for frame in ImageSequence.Iterator(img):
-            if width > self.width and height > self.height:
-                frame = frame.crop((0, 0, self.width, self.height)).convert('L')
-                frames.append(frame)
+            if auto_fit:
+                if width > self.width and height > self.height:
+                    frame = frame.crop((0, 0, self.width, self.height)).convert('L')
+                    frames.append(frame)
+                else:
+                    tmp = Image.new('L', (self.width, self.height), 'black')
+                    tmp.paste(frame, (0, 0))
+                    frames.append(tmp)
             else:
-                tmp = Image.new('L', (self.width, self.height), 'black')
-                tmp.paste(frame, (0, 0))
-                frames.append(tmp)
+                temp = Image.new('L', (width, height), 'black')
+                temp.paste(frame, (0, 0))
+                frames.append(temp)
         
         last_frame_time = 0
         cur_frame = 0
         while True:
             now = time.time()
             if now - last_frame_time >= duration / 1000:
-                self.send_image(frames[cur_frame])
+                self.send_image(frames[cur_frame], auto_fit)
                 last_frame_time = now
                 cur_frame += 1
             if cur_frame >= len(frames):
