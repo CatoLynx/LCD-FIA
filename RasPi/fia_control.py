@@ -4,13 +4,23 @@ import time
 
 from PIL import Image, ImageSequence
 
+
+class FIAError(Exception):
+    pass
+
+
 class FIA:
     SIDE_A = 0x01
     SIDE_B = 0x02
     SIDE_BOTH = 0x03
     
+    BUF_SCROLL = 0x80
     BUF_MASK = 0x40
-    BUF_SCROLL = 0x40
+    BUF_DYN = 0x20
+    
+    SCROLL_BUF_ERR_MASK = 0x10
+    SCROLL_BUF_ERR_SIZE = 1
+    SCROLL_BUF_ERR_COUNT = 2
     
     UART_CMD_NULL = 0x00
     UART_CMD_MCU_RESET = 0x01
@@ -41,8 +51,11 @@ class FIA:
     
     UART_CMD_CREATE_SCROLL_BUFFER = 0x60
     UART_CMD_DELETE_SCROLL_BUFFER = 0x61
-    UART_CMD_SET_DESTINATION_BUFFER = 0x62
-    UART_CMD_UPDATE_SCROLL_BUFFER = 0x63
+    UART_CMD_UPDATE_SCROLL_BUFFER = 0x62
+    UART_CMD_SET_DESTINATION_BUFFER = 0x63
+    UART_CMD_GET_DESTINATION_BUFFER = 0x64
+    UART_CMD_SET_MASK_ENABLED = 0x65
+    UART_CMD_GET_MASK_ENABLED = 0x66
     
     def __init__(self, uart_port, spi_port, uart_baud = 115200, uart_timeout = 1.0, spi_clock = 5000000, width = 480, height = 128, panel_width = 96, panel_height = 64):
         self.uart = serial.Serial(uart_port, baudrate=uart_baud, timeout=uart_timeout)
@@ -216,14 +229,18 @@ class FIA:
             sc_st_y >> 8,sc_st_y & 0xFF,
         ]
         resp = self.send_uart_command(self.UART_CMD_CREATE_SCROLL_BUFFER, params)
+        if resp[0] & self.SCROLL_BUF_ERR_MASK:
+            err = resp[0] & ~self.SCROLL_BUF_ERR_MASK
+            if err == self.SCROLL_BUF_ERR_COUNT:
+                raise FIAError("No free scroll buffer slots left")
+            elif err == self.SCROLL_BUF_ERR_SIZE:
+                raise FIAError("Not enough memory for requested scroll buffer")
+            else:
+                raise FIAError("Scroll buffer error code {}".format(err))
         return resp[0]
     
     def delete_scroll_buffer(self, buf_id):
         resp = self.send_uart_command(self.UART_CMD_DELETE_SCROLL_BUFFER, [buf_id])
-        return resp[0]
-    
-    def set_destination_buffer(self, buf_id):
-        resp = self.send_uart_command(self.UART_CMD_SET_DESTINATION_BUFFER, [buf_id])
         return resp[0]
     
     def update_scroll_buffer(self, buf_id, side = 0xFF, disp_x = 0xFFFF, disp_y = 0xFFFF, disp_w = 0xFFFF, disp_h = 0xFFFF, sc_off_x = 0xFFFF, sc_off_y = 0xFFFF, sc_sp_x = 0xFFFF, sc_sp_y = 0xFFFF, sc_st_x = 0x7FFF, sc_st_y = 0x7FFF):
@@ -244,6 +261,21 @@ class FIA:
             sc_st_y >> 8,sc_st_y & 0xFF,
         ]
         resp = self.send_uart_command(self.UART_CMD_UPDATE_SCROLL_BUFFER, params)
+        return resp[0]
+    
+    def set_destination_buffer(self, buf_id):
+        resp = self.send_uart_command(self.UART_CMD_SET_DESTINATION_BUFFER, [buf_id])
+        return resp[0]
+    
+    def get_destination_buffer(self):
+        resp = self.send_uart_command(self.UART_CMD_GET_DESTINATION_BUFFER)
+        return resp[0]
+    
+    def set_mask_enabled(self, state):
+        resp = self.send_uart_command(self.UART_CMD_SET_MASK_ENABLED, [state])
+    
+    def get_mask_enabled(self):
+        resp = self.send_uart_command(self.UART_CMD_GET_MASK_ENABLED)
         return resp[0]
     
     def img_to_array(self, img):
