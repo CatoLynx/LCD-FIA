@@ -154,8 +154,8 @@ def get_coach_order_strings(data):
     TIP_LEFT_LARGE_INV = "\x42"
     TIP_RIGHT_LARGE_INV = "\x43"
     
-    with open("wr.json", 'w') as f:
-        json.dump(data, f)
+    #with open("wr.json", 'w') as f:
+    #    json.dump(data, f)
     
     if not data:
         return (None, None)
