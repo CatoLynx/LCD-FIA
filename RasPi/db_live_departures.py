@@ -24,7 +24,7 @@ def main():
 
     fia = FIA("/dev/ttyAMA1", (3, 0))
     
-    renderer = LayoutRenderer(args.font_dir)
+    renderer = LayoutRenderer(args.font_dir, fia=fia)
     
     dbi = DBInfoscreen("dbf.finalrewind.org")
     ds100 = DS100()
@@ -37,6 +37,8 @@ def main():
             layout_double = json.load(f)
     else:
         layout_double = layout_single
+    
+    last_data_hash = 0
     
     COACH_ORDER_CACHE = {}
     while True:
@@ -114,7 +116,7 @@ def main():
                 }
                 if random_station:
                     data['placeholders']['station'] = ds100.get(station_code).get('short_name')
-                img = renderer.render(layout_single, data)
+                layout = layout_single
             else:
                 delay_next_1 = dbi.round_delay(next_trains[0].get('delayDeparture', 0))
                 delay_next_2 = dbi.round_delay(next_trains[1].get('delayDeparture', 0))
@@ -152,11 +154,12 @@ def main():
                             'next_train_2_info': get_info_short(next_trains[1])
                         }
                     }
+                    
                     if random_station:
                         data['placeholders']['station'] = ds100.get(station_code).get('short_name')
                     if not has_next_trains:
                         data['placeholders']['next_trains'] = ""
-                    img = renderer.render(layout_double, data)
+                    layout = layout_double
                 else:
                     train = main_trains[0]
                     if "F" in train.get('trainClasses', []):
@@ -206,10 +209,16 @@ def main():
                         data['placeholders']['station'] = ds100.get(station_code).get('short_name')
                     if not has_next_trains:
                         data['placeholders']['next_trains'] = ""
-                    img = renderer.render(layout_single, data)
-            fia.send_image(img)
+                    layout = layout_single
+            
+            data_hash = hash(json.dumps(data, sort_keys=True))
+            if data_hash != last_data_hash:
+                renderer.free_scroll_buffers()
+                renderer.display(layout, data)
+                last_data_hash = data_hash
             time.sleep(60 if random_station else 30)
         except KeyboardInterrupt:
+            renderer.free_scroll_buffers()
             break
         except:
             traceback.print_exc()

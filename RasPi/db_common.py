@@ -44,7 +44,7 @@ def get_info_long(train):
         else:
             messages.append("heute unbestimmt verspätet")
     if messages:
-        return " " + " \xb4 ".join(messages)
+        return " \xb4 ".join(messages)
     else:
         return ""
 

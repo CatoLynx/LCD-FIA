@@ -1,21 +1,79 @@
 import argparse
 import json
+import math
 import os
 
-from fia_control import FIA
+from fia_control import FIA, FIAError
 from PIL import Image, ImageOps, ImageDraw
 
 
+class ScrollBuffer:    
+    def __init__(self, fia, side, disp_x, disp_y, disp_w, disp_h, int_w, int_h, sc_off_x = 0, sc_off_y = 0, sc_sp_x = 0, sc_sp_y = 0, sc_st_x = 0, sc_st_y = 0):
+        self.fia = fia
+        self.side = side
+        self.disp_x = disp_x
+        self.disp_y = disp_y
+        self.disp_w = disp_w
+        self.disp_h = disp_h
+        self.int_w = int_w
+        self.int_h = int_h
+        self.sc_off_x = sc_off_x or 0
+        self.sc_off_y = sc_off_y or 0
+        self.sc_sp_x = sc_sp_x or 0
+        self.sc_sp_y = sc_sp_y or 0
+        self.sc_st_x = sc_st_x or 0
+        self.sc_st_y = sc_st_y or 0
+        self.id = None
+    
+    def update(self):
+        if self.id is None:
+            raise FIAError("Can't update unallocated scroll buffer")
+        return self.fia.update_scroll_buffer(self.id, self.side, self.disp_x, self.disp_y, self.disp_w, self.disp_h, self.sc_off_x, self.sc_off_y, self.sc_sp_x, self.sc_sp_y, self.sc_st_x, self.sc_st_y)
+    
+    def create(self):
+        self.id = self.fia.create_scroll_buffer(self.side, self.disp_x, self.disp_y, self.disp_w, self.disp_h, self.int_w, self.int_h, self.sc_off_x, self.sc_off_y, self.sc_sp_x, self.sc_sp_y, self.sc_st_x, self.sc_st_y)
+    
+    def delete(self):
+        if self.id is None:
+            raise FIAError("Can't delete unallocated scroll buffer")
+        return self.fia.delete_scroll_buffer(self.id)
+    
+    def send_img(self, img):
+        if self.id is None:
+            raise FIAError("Can't send image to unallocated scroll buffer")
+        
+        w, h = img.size
+        if w != self.int_w or h != self.int_h:
+            raise FIAError("Scroll buffer image doesn't match allocated dimensions")
+        
+        dest_buf = self.fia.get_destination_buffer()
+        try:
+            self.fia.set_destination_buffer(self.id)
+            self.fia.send_image(img, auto_fit=False)
+        finally:
+            # Restore old destination buffer
+            self.fia.set_destination_buffer(dest_buf)
+
+
 class LayoutRenderer:
+    MAX_FIELD_WIDTH = 10000
     CHAR_MAP = {
         
     }
     
-    def __init__(self, font_dir):
+    SIDE_LUT = {
+        'a': FIA.SIDE_A,
+        'b': FIA.SIDE_B,
+        'both': FIA.SIDE_BOTH
+    }
+    
+    def __init__(self, font_dir, fia = None):
         self.font_dir = font_dir
+        self.fia = fia
         self.img_mode = 'L'
         self.img_bg = 255
         self.img_fg = 0
+        self.scroll_buffers = []
     
     def get_char_filename(self, font, size, code):
         return os.path.join(self.font_dir, font, "size_{}".format(size), "{:x}.bmp".format(code))
@@ -68,7 +126,7 @@ class LayoutRenderer:
             new_img = ImageOps.invert(new_img)
         return new_img
 
-    def render_placeholder(self, img, placeholder, value, render_boxes, render_content):
+    def render_placeholder(self, img, side, placeholder, value, render_boxes, render_content):
         x = placeholder.get('x')
         y = placeholder.get('y')
         width = placeholder.get('width')
@@ -87,7 +145,46 @@ class LayoutRenderer:
             align = placeholder.get('align')
             spacing = placeholder.get('spacing', 0)
             char_width = placeholder.get('char_width', None)
-            img.paste(self.render_text(width, height, pad_left, pad_top, font, size, align, inverted, spacing, char_width, value), (x, y))
+            
+            scroll = placeholder.get('scroll', False)
+            only_scroll_if_wider = placeholder.get('only_scroll_if_wider', False)
+            if scroll:
+                int_w = placeholder.get('internal_width')
+                int_h = placeholder.get('internal_height', math.ceil(height / 8) * 8)
+                sc_off_x = placeholder.get('scroll_offset_x')
+                sc_off_y = placeholder.get('scroll_offset_y')
+                sc_sp_x = placeholder.get('scroll_speed_x', 5)
+                sc_sp_y = placeholder.get('scroll_speed_y', 0)
+                sc_st_x = placeholder.get('scroll_step_x', 1)
+                sc_st_y = placeholder.get('scroll_step_y', 1)
+                post_clearance = placeholder.get('post_clearance', 0)
+                # "not inverted" because usually the whole thing
+                # is inverted until the end
+                # but in case of scroll buffers we pass the image early
+                # so we have to invert the inverting
+                if int_w is None:
+                    # No internal width specified, use auto-crop
+                    txt = self.render_text(self.MAX_FIELD_WIDTH, height, pad_left, pad_top, font, size, align, not inverted, spacing, char_width, value)
+                    if inverted:
+                        tmp = ImageOps.invert(txt)
+                        bbox = tmp.getbbox()
+                        required_width = bbox[2]
+                        if only_scroll_if_wider and required_width <= width:
+                            scroll = False
+                        else:
+                            int_w = max(required_width + post_clearance, width)
+                            txt = txt.crop((0, 0, int_w, height))
+                else:
+                    txt = self.render_text(int_w, height, pad_left, pad_top, font, size, align, not inverted, spacing, char_width, value)
+                if scroll:
+                    scroll_buffer = ScrollBuffer(self.fia, side, x, y, width, height, int_w, int_h, sc_off_x, sc_off_y, sc_sp_x, sc_sp_y, sc_st_x, sc_st_y)
+                    scroll_buffer.create()
+                    print("Allocated scroll buffer {}".format(scroll_buffer.id))
+                    scroll_buffer.send_img(txt)
+                    self.scroll_buffers.append(scroll_buffer)
+            if not scroll:
+                txt = self.render_text(width, height, pad_left, pad_top, font, size, align, inverted, spacing, char_width, value)
+                img.paste(txt, (x, y))
         elif render_content and p_type == 'image':
             if not value:
                 return
@@ -115,14 +212,26 @@ class LayoutRenderer:
     
     def render(self, layout, data, render_boxes = False, render_content = True):
         img = Image.new(self.img_mode, (layout['width'], layout['height']), color=self.img_bg)
+        side = self.SIDE_LUT.get(layout.get('side', 'both'), self.SIDE_LUT['both'])
         if render_content:
             for placeholder in layout['placeholders']:
                 value = data['placeholders'].get(placeholder['name'], placeholder.get('default'))
-                self.render_placeholder(img, placeholder, value, render_boxes=False, render_content=True)
+                self.render_placeholder(img, side, placeholder, value, render_boxes=False, render_content=True)
         if render_boxes:
             for placeholder in layout['placeholders']:
-                self.render_placeholder(img, placeholder, value=None, render_boxes=True, render_content=False)
+                self.render_placeholder(img, side, placeholder, value=None, render_boxes=True, render_content=False)
         return ImageOps.invert(img)
+    
+    def display(self, *args, **kwargs):
+        if self.fia is None:
+            raise ValueError("Can't display image without fia argument")
+        img = self.render(*args, **kwargs)
+        self.fia.send_image(img)
+    
+    def free_scroll_buffers(self):
+        for buf in self.scroll_buffers:
+            buf.delete()
+        self.scroll_buffers = []
 
 
 def main():
