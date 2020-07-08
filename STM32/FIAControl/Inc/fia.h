@@ -67,9 +67,11 @@
 #define BITMAP_BUF_W_PX (PANEL_WIDTH * NUM_PANELS)
 #define MAX_SCROLL_BUFFERS 20
 #define SCROLL_BUFFER_ID_MASK 0x80
-#define SCROLL_BUFFER_ERR_COUNT 0x41
-#define SCROLL_BUFFER_ERR_SIZE 0x42
 #define MASK_BUFFER_ID_MASK 0x40
+#define DYN_BUFFER_ID_MASK 0x20
+#define SCROLL_BUFFER_ERR_MASK 0x10
+#define SCROLL_BUFFER_ERR_COUNT 1
+#define SCROLL_BUFFER_ERR_SIZE 2
 
 // Sensor related definitions
 #define ADC_AVG_COUNT 200
@@ -146,8 +148,10 @@ uint8_t FIA_displayBufferSideA[BITMAP_BUF_SIZE];
 uint8_t FIA_displayBufferSideB[BITMAP_BUF_SIZE];
 uint8_t FIA_bitmapRxActive;
 uint8_t* FIA_bitmapRxBuf;
+uint8_t FIA_bitmapRxBufID;
 uint8_t FIA_bitmapRxBoth;
 uint16_t FIA_bitmapRxLen;
+uint8_t FIA_maskEnabled;
 
 // Variables for scroll buffers
 FIA_Scroll_Buffer_t FIA_scrollBuffers[MAX_SCROLL_BUFFERS];
@@ -164,7 +168,7 @@ uint8_t FIA_circulationFansOverrideHeatersHumidity;
 void FIA_Init(void);
 void FIA_InitI2CDACs(void);
 void FIA_MainLoop(void);
-void FIA_UpdateScrollPositions();
+void FIA_UpdateScrollPositions(void);
 void FIA_ScrollBufferRelative(FIA_Scroll_Buffer_t* buf, int16_t xStep, int16_t yStep);
 void FIA_RenderScrollBuffer(FIA_Scroll_Buffer_t buf);
 void FIA_RenderScrollBuffers(void);
@@ -173,7 +177,7 @@ void FIA_UpdateDisplay(FIA_LCD_Bus_t bus);
 void FIA_StartBitmapReceive(void);
 void FIA_AbortBitmapReceive(void);
 void FIA_SetBacklightBrightness(FIA_Side_t side, uint16_t value);
-void FIA_UpdateLCDContrast();
+void FIA_UpdateLCDContrast(void);
 void FIA_SetLCDContrast(FIA_Side_t side, uint16_t value);
 uint16_t FIA_GetLCDContrast(FIA_Side_t side);
 void FIA_SetStatusLED(uint8_t number, uint8_t value);
@@ -197,7 +201,7 @@ FIA_Side_t FIA_GetDoors(void);
 void FIA_StartExtTempSensorConv(void);
 void FIA_ReadTempSensors(void);
 double FIA_GetTemperature(FIA_Temp_Sensor_t sensor);
-double FIA_GetHumidity();
+double FIA_GetHumidity(void);
 uint8_t FIA_CreateScrollBuffer(FIA_Side_t side, uint16_t dispX, uint16_t dispY, uint16_t dispW, uint16_t dispH,
                                uint16_t intW, uint16_t intH, uint16_t scOffX, uint16_t scOffY, uint16_t scSpX,
                                uint16_t scSpY, int16_t scStX, int16_t scStY);
@@ -207,4 +211,7 @@ uint8_t FIA_UpdateScrollBuffer(uint8_t id, FIA_Side_t side, uint16_t dispX, uint
 uint8_t FIA_DeleteScrollBuffer(uint8_t id);
 void FIA_UpdateNextFreeScrollBufferIndex(void);
 uint8_t FIA_SetBitmapDestinationBuffer(uint8_t id);
+uint8_t FIA_GetBitmapDestinationBuffer(void);
+void FIA_SetMaskEnabled(uint8_t state);
+uint8_t FIA_GetMaskEnabled(void);
 void FIA_RegulateTempAndHumidity(void);

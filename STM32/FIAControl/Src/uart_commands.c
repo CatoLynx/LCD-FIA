@@ -205,13 +205,6 @@ void UART_ProcessCommand(uint8_t command, uint8_t* parameters, uint8_t parameter
             break;
         }
 
-        case UART_CMD_SET_DESTINATION_BUFFER: {
-            responseLength = 1;
-            uint8_t status = FIA_SetBitmapDestinationBuffer(parameters[0]);
-            uartTxPayload[0] = status;
-            break;
-        }
-
         case UART_CMD_UPDATE_SCROLL_BUFFER: {
             responseLength = 1;
 
@@ -231,6 +224,31 @@ void UART_ProcessCommand(uint8_t command, uint8_t* parameters, uint8_t parameter
                                                 scSpY, scStX, scStY);
 
             uartTxPayload[0] = status;
+            break;
+        }
+
+        case UART_CMD_SET_DESTINATION_BUFFER: {
+            responseLength = 1;
+            uint8_t status = FIA_SetBitmapDestinationBuffer(parameters[0]);
+            uartTxPayload[0] = status;
+            break;
+        }
+
+        case UART_CMD_GET_DESTINATION_BUFFER: {
+            responseLength = 1;
+            uartTxPayload[0] = FIA_GetBitmapDestinationBuffer();
+            break;
+        }
+
+        case UART_CMD_SET_MASK_ENABLED: {
+            FIA_SetMaskEnabled(parameters[0]);
+            responseLength = 0;
+            break;
+        }
+
+        case UART_CMD_GET_MASK_ENABLED: {
+            responseLength = 1;
+            uartTxPayload[0] = FIA_GetMaskEnabled();
             break;
         }
     }

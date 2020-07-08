@@ -16,6 +16,7 @@ uint8_t firstADCReadFlag = 1;
 uint8_t FIA_circulationFansOverrideBLBallast = 0;
 uint8_t FIA_circulationFansOverrideHeatersTemp = 0;
 uint8_t FIA_circulationFansOverrideHeatersHumidity = 0;
+uint8_t FIA_bitmapRxBufID = SIDE_BOTH;
 
 // Status variables for selected RAM per LCD bus
 uint8_t FIA_LCDcurrentRAM[NUM_LCD_BUSES];
@@ -98,7 +99,7 @@ void FIA_MainLoop(void) {
     FIA_UpdateDisplay(BUS_4);
 }
 
-void FIA_UpdateScrollPositions() {
+void FIA_UpdateScrollPositions(void) {
     // Called via timer interrupt.
     // Update all scroll positions as necessary
     for (uint8_t i = 0; i < MAX_SCROLL_BUFFERS; i++) {
@@ -153,8 +154,14 @@ void FIA_RenderScrollBuffer(FIA_Scroll_Buffer_t buf) {
     uint8_t sbufDispAligned = scrollBitOffset == 0;
     uint8_t renderA = buf.side == SIDE_A || buf.side == SIDE_BOTH;
     uint8_t renderB = buf.side == SIDE_B || buf.side == SIDE_BOTH;
-    uint8_t* dispA = FIA_dynamicBufferSideA;
-    uint8_t* dispB = FIA_dynamicBufferSideB;
+    uint8_t *dispA, *dispB;
+    if (FIA_maskEnabled) {
+        dispA = FIA_dynamicBufferSideA;
+        dispB = FIA_dynamicBufferSideB;
+    } else {
+        dispA = FIA_staticBufferSideA;
+        dispB = FIA_staticBufferSideB;
+    }
 
     for (uint16_t x = 0; x < BITMAP_BUF_W_PX; x++) {
         // Continue if we're outside the display window
@@ -399,12 +406,17 @@ void FIA_UpdateDisplayBuffers(void) {
     // Render scroll buffers
     FIA_RenderScrollBuffers();
 
-    // Blend static and dynamic buffers
-    for (uint16_t i = 0; i < BITMAP_BUF_SIZE; i++) {
-        FIA_displayBufferSideA[i] =
-            (FIA_staticBufferSideA[i] & FIA_maskBufferSideA[i]) | (FIA_dynamicBufferSideA[i] & ~FIA_maskBufferSideA[i]);
-        FIA_displayBufferSideB[i] =
-            (FIA_staticBufferSideB[i] & FIA_maskBufferSideB[i]) | (FIA_dynamicBufferSideB[i] & ~FIA_maskBufferSideB[i]);
+    if (FIA_maskEnabled) {
+        // Blend static and dynamic buffers
+        for (uint16_t i = 0; i < BITMAP_BUF_SIZE; i++) {
+            FIA_displayBufferSideA[i] = (FIA_staticBufferSideA[i] & ~FIA_maskBufferSideA[i]) |
+                                        (FIA_dynamicBufferSideA[i] & FIA_maskBufferSideA[i]);
+            FIA_displayBufferSideB[i] = (FIA_staticBufferSideB[i] & ~FIA_maskBufferSideB[i]) |
+                                        (FIA_dynamicBufferSideB[i] & FIA_maskBufferSideB[i]);
+        }
+    } else {
+        memcpy(FIA_displayBufferSideA, FIA_staticBufferSideA, BITMAP_BUF_SIZE);
+        memcpy(FIA_displayBufferSideB, FIA_staticBufferSideB, BITMAP_BUF_SIZE);
     }
 }
 
@@ -483,7 +495,7 @@ void FIA_SetBacklightBrightness(FIA_Side_t side, uint16_t value) {
     }
 }
 
-void FIA_UpdateLCDContrast() {
+void FIA_UpdateLCDContrast(void) {
     HAL_DAC_SetValue(&hdac, DAC_LCD_CONTRAST_SIDE_A, DAC_ALIGN_12B_R, lcdContrast[0]);
     HAL_DAC_SetValue(&hdac, DAC_LCD_CONTRAST_SIDE_B, DAC_ALIGN_12B_R, lcdContrast[1]);
 }
@@ -577,7 +589,7 @@ uint16_t FIA_CalculateBacklightBrightness(FIA_Side_t side, uint16_t envBrt) {
     return result;
 }
 
-void FIA_UpdateADCValues() {
+void FIA_UpdateADCValues(void) {
     // CH1, CH2 (Env Brightness) sensor range: 0.3 ... 0.65V (ADC values 370 ... 800)
     // CH3 (Internal Temperature) sensor range: ???
     uint16_t tmpVal = 0;
@@ -717,7 +729,7 @@ double FIA_GetTemperature(FIA_Temp_Sensor_t sensor) {
     return FIA_tempSensorValues[sensor];
 }
 
-double FIA_GetHumidity() {
+double FIA_GetHumidity(void) {
     // Get the relative humidity of the inside air (in %)
     return SHT21_GetHumidity();
 }
@@ -726,13 +738,13 @@ uint8_t FIA_CreateScrollBuffer(FIA_Side_t side, uint16_t dispX, uint16_t dispY, 
                                uint16_t intW, uint16_t intH, uint16_t scOffX, uint16_t scOffY, uint16_t scSpX,
                                uint16_t scSpY, int16_t scStX, int16_t scStY) {
     if (FIA_scrollBufferCount >= MAX_SCROLL_BUFFERS || FIA_nextFreeScrollBufferIndex == -1) {
-        return SCROLL_BUFFER_ERR_COUNT;
+        return SCROLL_BUFFER_ERR_MASK | SCROLL_BUFFER_ERR_COUNT;
     }
 
     size_t bufSize = intW * roundUp(intH, 8) / 8;
     uint8_t* buf = malloc(bufSize);
     if (buf == NULL) {
-        return SCROLL_BUFFER_ERR_SIZE;
+        return SCROLL_BUFFER_ERR_MASK | SCROLL_BUFFER_ERR_SIZE;
     }
     memset(buf, 0x00, bufSize);
 
@@ -898,6 +910,21 @@ uint8_t FIA_SetBitmapDestinationBuffer(uint8_t id) {
             FIA_bitmapRxBoth = 1;
             FIA_bitmapRxLen = BITMAP_BUF_SIZE;
         }
+    } else if (id & DYN_BUFFER_ID_MASK) {
+        id &= ~DYN_BUFFER_ID_MASK;
+        if (id == SIDE_A) {
+            FIA_bitmapRxBuf = FIA_dynamicBufferSideA;
+            FIA_bitmapRxBoth = 0;
+            FIA_bitmapRxLen = BITMAP_BUF_SIZE;
+        } else if (id == SIDE_B) {
+            FIA_bitmapRxBuf = FIA_dynamicBufferSideB;
+            FIA_bitmapRxBoth = 0;
+            FIA_bitmapRxLen = BITMAP_BUF_SIZE;
+        } else if (id == SIDE_BOTH) {
+            FIA_bitmapRxBuf = FIA_dynamicBufferSideA;
+            FIA_bitmapRxBoth = 1;
+            FIA_bitmapRxLen = BITMAP_BUF_SIZE;
+        }
     } else if (id & SCROLL_BUFFER_ID_MASK) {
         uint8_t bufIdx = id & ~SCROLL_BUFFER_ID_MASK;
         if (bufIdx >= MAX_SCROLL_BUFFERS) {
@@ -914,7 +941,20 @@ uint8_t FIA_SetBitmapDestinationBuffer(uint8_t id) {
         return 0;
     }
 
+    FIA_bitmapRxBufID = id;
     return 1;
+}
+
+uint8_t FIA_GetBitmapDestinationBuffer(void) {
+    return FIA_bitmapRxBufID;
+}
+
+void FIA_SetMaskEnabled(uint8_t state) {
+    FIA_maskEnabled = !!state;
+}
+
+uint8_t FIA_GetMaskEnabled(void) {
+    return FIA_maskEnabled;
 }
 
 void FIA_RegulateTempAndHumidity(void) {
@@ -1026,6 +1066,8 @@ void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef* hspi) {
                 memcpy(FIA_staticBufferSideB, FIA_staticBufferSideA, BITMAP_BUF_SIZE);
             } else if (FIA_bitmapRxBuf == FIA_maskBufferSideA) {
                 memcpy(FIA_maskBufferSideB, FIA_maskBufferSideA, BITMAP_BUF_SIZE);
+            } else if (FIA_bitmapRxBuf == FIA_dynamicBufferSideA) {
+                memcpy(FIA_dynamicBufferSideB, FIA_dynamicBufferSideA, BITMAP_BUF_SIZE);
             }
         }
     }
