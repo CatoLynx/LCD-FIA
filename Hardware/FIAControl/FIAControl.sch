@@ -5,7 +5,7 @@ EELAYER END
 $Descr A3 16535 11693
 encoding utf-8
 Sheet 1 1
-Title "funkwerk KJ LCD FIA Controller"
+Title "LCD Passenger Information Display Controller"
 Date "2020-03-05"
 Rev "1.0"
 Comp "xatLabs"

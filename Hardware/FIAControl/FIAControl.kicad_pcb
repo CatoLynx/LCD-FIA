@@ -11,7 +11,7 @@
 
   (page A4)
   (title_block
-    (title "funkwerk KJ LCD FIA Controller")
+    (title "LCD Passenger Information Display Controller")
     (date 2020-03-02)
     (rev 1.0)
     (company xatLabs)
