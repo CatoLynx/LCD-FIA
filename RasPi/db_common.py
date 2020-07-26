@@ -35,14 +35,17 @@ def get_info_long(train):
     messages = []
     if train.get('isCancelled'):
         messages.append("fällt heute aus")
-    if train.get('platform') != train.get('scheduledPlatform'):
-        messages.append("heute von Gleis {}".format(train['platform']))
-    delay = DBInfoscreen.round_delay(train.get('delayDeparture', 0))
-    if delay:
-        if delay > 0:
-            messages.append("heute ca. {} Minuten später".format(delay))
-        else:
-            messages.append("heute unbestimmt verspätet")
+    else:
+        if train.get('platform') != train.get('scheduledPlatform'):
+            messages.append("heute von Gleis {}".format(train['platform']))
+        delay = DBInfoscreen.round_delay(train.get('delayDeparture', 0))
+        if delay:
+            if delay > 0:
+                messages.append("heute ca. {} Minuten später".format(delay))
+            else:
+                messages.append("heute unbestimmt verspätet")
+        for msg in train['messages']['qos']:
+            messages.append(msg['text'])
     if messages:
         return " \xb4 ".join(messages)
     else:
