@@ -10,6 +10,7 @@
 */
 
 #include "adc.h"
+#include "config.h"
 #include "dac.h"
 #include "globals.h"
 #include "i2c.h"
@@ -51,7 +52,14 @@
 // How many panels are daisy-chained.
 // This assumes that first all top halves of each display
 // are chained, then all bottom halves.
+#ifdef DISPLAY_FORMAT_5x2
 #define NUM_PANELS 5
+#endif
+
+#ifdef DISPLAY_FORMAT_4x2
+#define NUM_PANELS 4
+#endif
+
 #define NUM_HALF_PANELS (NUM_PANELS * 2)
 #define PANEL_WIDTH 96
 #define PANEL_HEIGHT 64
@@ -97,22 +105,41 @@
 #define HEATERS_CUTOFF_TEMP 35
 
 // Type definitions
-typedef enum FIA_Side { SIDE_NONE = 0, SIDE_A = 1, SIDE_B = 2, SIDE_BOTH = 3 } FIA_Side_t;
-typedef enum FIA_LCD_Bus { BUS_1 = 0, BUS_2 = 1, BUS_3 = 2, BUS_4 = 3 } FIA_LCD_Bus_t;
-typedef enum FIA_Temp_Sensor { BL_BALL = 0, AIRFLOW = 1, BOARD = 2, MCU = 3 } FIA_Temp_Sensor_t;
+typedef enum FIA_Side
+{
+    SIDE_NONE = 0,
+    SIDE_A = 1,
+    SIDE_B = 2,
+    SIDE_BOTH = 3
+} FIA_Side_t;
+typedef enum FIA_LCD_Bus
+{
+    BUS_1 = 0,
+    BUS_2 = 1,
+    BUS_3 = 2,
+    BUS_4 = 3
+} FIA_LCD_Bus_t;
+typedef enum FIA_Temp_Sensor
+{
+    BL_BALL = 0,
+    AIRFLOW = 1,
+    BOARD = 2,
+    MCU = 3
+} FIA_Temp_Sensor_t;
 
-typedef struct FIA_Scroll_Buffer {
-    uint8_t occupied; // Whether this slot is in use
-    FIA_Side_t side;  // Which side of the display it applies to
-    uint16_t dispX;   // X coordinate of upper left corner of scroll window
-    uint16_t dispY;   // Y coordinate of upper left corner of scroll window
-    uint16_t dispW;   // Displayed width of the scroll window
-    uint16_t dispH;   // Displayed height of the scroll window
-    uint16_t intW;    // Internal width of the scroll buffer in pixels
-    uint16_t intH;    // Internal height of the scroll buffer in pixels (rounded up to multiple of 8, used for bufSize
-                      // calculation)
-    size_t bufSize;   // Size of the bitmap data buffer in bytes
-    uint8_t* buf;     // The bitmap data buffer
+typedef struct FIA_Scroll_Buffer
+{
+    uint8_t occupied;       // Whether this slot is in use
+    FIA_Side_t side;        // Which side of the display it applies to
+    uint16_t dispX;         // X coordinate of upper left corner of scroll window
+    uint16_t dispY;         // Y coordinate of upper left corner of scroll window
+    uint16_t dispW;         // Displayed width of the scroll window
+    uint16_t dispH;         // Displayed height of the scroll window
+    uint16_t intW;          // Internal width of the scroll buffer in pixels
+    uint16_t intH;          // Internal height of the scroll buffer in pixels (rounded up to multiple of 8, used for bufSize
+                            // calculation)
+    size_t bufSize;         // Size of the bitmap data buffer in bytes
+    uint8_t* buf;           // The bitmap data buffer
     uint16_t scrollOffsetX; // The current scroll viewport offsets
     uint16_t scrollOffsetY;
     uint16_t scrollSpeedX; // Scroll interval (= 100 Hz / speed)
