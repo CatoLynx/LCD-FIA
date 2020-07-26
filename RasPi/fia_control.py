@@ -56,6 +56,13 @@ class FIA:
     UART_CMD_GET_DESTINATION_BUFFER = 0x64
     UART_CMD_SET_MASK_ENABLED = 0x65
     UART_CMD_GET_MASK_ENABLED = 0x66
+
+    # Raspberry Pi BCM GPIO pin
+    # Names as seen from the STM32
+    PIN_CTRL_AUX1_OUT = 23
+    PIN_CTRL_AUX2_OUT = 24
+    PIN_CTRL_AUX1_IN = 17
+    PIN_CTRL_AUX2_IN = 27
     
     def __init__(self, uart_port, spi_port, uart_baud = 115200, uart_timeout = 1.0, spi_clock = 5000000, width = 480, height = 128, panel_width = 96, panel_height = 64):
         self.uart = serial.Serial(uart_port, baudrate=uart_baud, timeout=uart_timeout)

@@ -13,6 +13,27 @@ from fia_control import FIA
 from db_common import *
 from local_settings import *
 
+if BL_AUX_IN_1_ENABLED:
+    import threading
+    import RPi.GPIO as gpio
+
+
+def bl_timer(fia):
+    if fia.get_backlight_state() == 1:
+        print("Backlight is already on, aborting")
+        return
+    print("Enabling backlight")
+    fia.set_backlight_state(1)
+    time.sleep(BL_AUX_IN_1_TIME)
+    print("Disabling backlight")
+    fia.set_backlight_state(0)
+
+
+def on_bl_button_pressed(pin, fia):
+    print("Backlight button pressed")
+    bl_thread = threading.Thread(target=bl_timer, kwargs={'fia': fia})
+    bl_thread.start()
+
 
 def main():
     parser = argparse.ArgumentParser(add_help=False)
@@ -24,6 +45,11 @@ def main():
     args = parser.parse_args()
 
     fia = FIA("/dev/ttyAMA1", (3, 0), width=DISPLAY_WIDTH, height=DISPLAY_HEIGHT)
+
+    if BL_AUX_IN_1_ENABLED:
+        gpio.setmode(gpio.BCM)
+        gpio.setup(FIA.PIN_CTRL_AUX1_OUT, gpio.IN)
+        gpio.add_event_detect(FIA.PIN_CTRL_AUX1_OUT, gpio.RISING, callback=lambda pin: on_bl_button_pressed(pin, fia))
     
     renderer = LayoutRenderer(args.font_dir, fia=fia)
     
