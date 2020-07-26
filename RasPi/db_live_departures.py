@@ -35,12 +35,21 @@ def on_bl_button_pressed(pin, fia):
     bl_thread.start()
 
 
+def train_type_filter(train, train_types):
+    cur_type = train['train'].split()[0]
+    for tt in train_types:
+        if cur_type == tt:
+            return True
+    return False
+
+
 def main():
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument('--layout-single', '-ls', required=True, type=str)
     parser.add_argument('--layout-double', '-ld', required=False, type=str)
     parser.add_argument('--font-dir', '-fd', required=True, type=str)
     parser.add_argument('--station', '-s', required=True, type=str)
+    parser.add_argument('--train-types', '-tt', required=False, type=str)
     parser.add_argument('--platform', '-p', required=False, type=str, default="all")
     args = parser.parse_args()
 
@@ -50,6 +59,7 @@ def main():
         gpio.setmode(gpio.BCM)
         gpio.setup(FIA.PIN_CTRL_AUX1_OUT, gpio.IN)
         gpio.add_event_detect(FIA.PIN_CTRL_AUX1_OUT, gpio.RISING, callback=lambda pin: on_bl_button_pressed(pin, fia))
+        fia.set_backlight_state(0)
     
     renderer = LayoutRenderer(args.font_dir, fia=fia)
     
@@ -64,6 +74,11 @@ def main():
             layout_double = json.load(f)
     else:
         layout_double = layout_single
+
+    if args.train_types:
+        train_types = args.train_types.split(",")
+    else:
+        train_types = []
     
     last_data_hash = 0
     
@@ -84,7 +99,8 @@ def main():
                     trains = dbi.calc_real_times(dbi.get_trains(args.station))
                 trains = filter(lambda t: t['actualDeparture'] is not None, trains)
                 trains = filter(lambda t: not t['train'].startswith("Bus SEV"), trains)
-                trains = filter(lambda t: not t['train'].startswith("S "), trains)
+                if args.train_types:
+                    trains = filter(lambda t: train_type_filter(t, train_types), trains)
                 if args.platform != "all":
                     trains = filter(lambda t: t['scheduledPlatform'] == args.platform, trains)
                 trains = list(trains)
