@@ -17,6 +17,7 @@ GENERAL_STATION_REPLACEMENTS = [
 
 DESTINATION_REPLACEMENTS = [
     (r"Frankfurt \(M\)", "Frankfurt "),
+    (r" Bhf", ""),
 ]
 
 VIA_REPLACEMENTS = [
@@ -24,6 +25,8 @@ VIA_REPLACEMENTS = [
     (r"Frankfurt \(M\)", "F-"),
     (r"Frankfurt am Main - ", "F-"),
     (r"Frankfurt (?!am Main)", "F-"),
+    (r"München ", ""),
+    (r"Karlsplatz", "Karlsplatz (Stachus)"),
 ]
 
 TRAIN_NUMBER_REPLACEMENTS = [
