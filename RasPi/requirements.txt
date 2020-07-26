@@ -5,5 +5,6 @@ idna==2.9
 Pillow==7.0.0
 pyserial==3.4
 requests==2.23.0
+RPi.GPIO==0.7.0
 spidev==3.4
 urllib3==1.25.8
