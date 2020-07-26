@@ -6,12 +6,14 @@ from PIL import Image
 from fia_control import FIA
 from layout_renderer import LayoutRenderer
 
+from local_settings import *
+
 POWER_STATES = ["OFF", "ON"]
 MULTI_POWER_STATES = ["OFF", "HALF", "FULL"]
 DOOR_STATES = ["CLOSED", "OPEN"]
 
 def main():
-    fia = FIA("/dev/ttyAMA1", (3, 0))
+    fia = FIA("/dev/ttyAMA1", (3, 0), width=DISPLAY_WIDTH, height=DISPLAY_HEIGHT)
     renderer = LayoutRenderer("fonts")
     
     with open("layouts/temp_monitor_5x2.json", 'r', encoding='utf-8') as f:

@@ -6,6 +6,8 @@ import traceback
 from fia_control import FIA
 from PIL import Image, ImageDraw
 
+from local_settings import *
+
 
 class GameOfLife:
     def __init__(self, width, height, cell_size):
@@ -87,7 +89,7 @@ def main():
     parser.add_argument('--seed', '-s', required=False, type=str)
     args = parser.parse_args()
 
-    fia = FIA("/dev/ttyAMA1", (3, 0))
+    fia = FIA("/dev/ttyAMA1", (3, 0), width=DISPLAY_WIDTH, height=DISPLAY_HEIGHT)
     gol = GameOfLife(args.width, args.height, args.cell_size)
     
     if args.seed:

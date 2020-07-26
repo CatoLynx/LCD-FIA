@@ -3,6 +3,8 @@ import json
 from layout_renderer import LayoutRenderer
 from fia_control import FIA
 
+from local_settings import *
+
 
 def get_coach_order_strings(data):
     SEC_LBL_MAP = {
@@ -228,7 +230,7 @@ def get_coach_order_strings(data):
 
 
 def main():
-    fia = FIA("/dev/ttyAMA1", (3, 0))
+    fia = FIA("/dev/ttyAMA1", (3, 0), width=DISPLAY_WIDTH, height=DISPLAY_HEIGHT)
     renderer = LayoutRenderer("fonts")
     
     with open("layouts/departures_5x2_single.json", 'r', encoding='utf-8') as f:

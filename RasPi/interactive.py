@@ -3,7 +3,9 @@ from PIL import Image
 
 from fia_control import FIA
 
-fia = FIA("/dev/ttyAMA1", (3, 0))
+from local_settings import *
 
-white = Image.new('L', (480, 128), 'white')
-black = Image.new('L', (480, 128), 'black')
+fia = FIA("/dev/ttyAMA1", (3, 0), width=DISPLAY_WIDTH, height=DISPLAY_HEIGHT)
+
+white = Image.new('L', (DISPLAY_WIDTH, DISPLAY_HEIGHT), 'white')
+black = Image.new('L', (DISPLAY_WIDTH, DISPLAY_HEIGHT), 'black')

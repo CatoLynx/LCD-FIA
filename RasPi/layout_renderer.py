@@ -6,6 +6,8 @@ import os
 from fia_control import FIA, FIAError
 from PIL import Image, ImageOps, ImageDraw
 
+from local_settings import *
+
 
 class ScrollBuffer:    
     def __init__(self, fia, side, disp_x, disp_y, disp_w, disp_h, int_w, int_h, sc_off_x = 0, sc_off_y = 0, sc_sp_x = 0, sc_sp_y = 0, sc_st_x = 0, sc_st_y = 0):
@@ -258,7 +260,7 @@ def main():
     if args.output:
         img.save(args.output)
     else:
-        fia = FIA("/dev/ttyAMA1", (3, 0))
+        fia = FIA("/dev/ttyAMA1", (3, 0), width=DISPLAY_WIDTH, height=DISPLAY_HEIGHT)
         fia.send_image(img)
 
 

@@ -8,6 +8,8 @@ from PIL import Image, ImageSequence
 
 from fia_control import FIA
 
+from local_settings import *
+
 
 def pos_nonzero_int(value):
     try:
@@ -30,7 +32,7 @@ def main():
     parser.add_argument('--help', action='help', help="Display this help message")
     args = parser.parse_args()
     
-    fia = FIA("/dev/ttyAMA1", (3, 0))
+    fia = FIA("/dev/ttyAMA1", (3, 0), width=DISPLAY_WIDTH, height=DISPLAY_HEIGHT)
     
     print("Loading image...")
     img = Image.open(args.file)

@@ -11,6 +11,7 @@ from layout_renderer import LayoutRenderer
 from fia_control import FIA
 
 from db_common import *
+from local_settings import *
 
 
 def main():
@@ -22,7 +23,7 @@ def main():
     parser.add_argument('--platform', '-p', required=False, type=str, default="all")
     args = parser.parse_args()
 
-    fia = FIA("/dev/ttyAMA1", (3, 0))
+    fia = FIA("/dev/ttyAMA1", (3, 0), width=DISPLAY_WIDTH, height=DISPLAY_HEIGHT)
     
     renderer = LayoutRenderer(args.font_dir, fia=fia)
     

@@ -4,9 +4,11 @@ from PIL import Image
 
 from fia_control import FIA
 
+from local_settings import *
+
 
 def main():
-    fia = FIA("/dev/ttyAMA1", (3, 0))
+    fia = FIA("/dev/ttyAMA1", (3, 0), width=DISPLAY_WIDTH, height=DISPLAY_HEIGHT)
     
     fia.set_backlight_state(1)
     fia.set_heaters_state(0)

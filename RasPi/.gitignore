@@ -2,4 +2,5 @@ fonts/
 images/
 videos/
 fia_test.py
+local_settings.py
 

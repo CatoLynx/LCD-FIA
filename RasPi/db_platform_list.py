@@ -12,6 +12,7 @@ from layout_renderer import LayoutRenderer
 from fia_control import FIA
 
 from db_common import *
+from local_settings import *
 
 
 def main():
@@ -31,7 +32,7 @@ def main():
         else:
             platforms.append(part)
 
-    fia = FIA("/dev/ttyAMA1", (3, 0))
+    fia = FIA("/dev/ttyAMA1", (3, 0), width=DISPLAY_WIDTH, height=DISPLAY_HEIGHT)
     
     renderer = LayoutRenderer(args.font_dir)
     
