@@ -18,6 +18,7 @@ GENERAL_STATION_REPLACEMENTS = [
 DESTINATION_REPLACEMENTS = [
     (r"Frankfurt \(M\)", "Frankfurt "),
     (r" Bhf", ""),
+    (r"München ", ""),
 ]
 
 VIA_REPLACEMENTS = [
