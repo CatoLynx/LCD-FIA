@@ -12,13 +12,17 @@ GENERAL_STATION_REPLACEMENTS = [
     (r" Bahnhof", " Bhf"),
     (r"Frankfurt\(M\) Flughafen(.+)", "F-Flugh.\g<1> \xb0"),
     (r"Gesundbrunnen", "Gesundbr."),
+    (r"München Ost", "Ostbahnhof"),
+    (r"München ", ""),
+    (r"Flughafen Terminal", "Flughafen/Airport \xb0"),
+    (r"Karlsplatz", "Karlsplatz (Stachus)"),
+    (r" \(Oberbay\)", ""),
+    (r" Bhf", ""),
     (r"(?<=\S)\(", " ("),
 ]
 
 DESTINATION_REPLACEMENTS = [
     (r"Frankfurt \(M\)", "Frankfurt "),
-    (r" Bhf", ""),
-    (r"München ", ""),
 ]
 
 VIA_REPLACEMENTS = [
@@ -26,8 +30,6 @@ VIA_REPLACEMENTS = [
     (r"Frankfurt \(M\)", "F-"),
     (r"Frankfurt am Main - ", "F-"),
     (r"Frankfurt (?!am Main)", "F-"),
-    (r"München ", ""),
-    (r"Karlsplatz", "Karlsplatz (Stachus)"),
 ]
 
 TRAIN_NUMBER_REPLACEMENTS = [
