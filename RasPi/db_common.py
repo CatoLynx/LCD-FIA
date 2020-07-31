@@ -5,35 +5,21 @@ from deutschebahn import DBInfoscreen
 
 
 GENERAL_STATION_REPLACEMENTS = [
-    (r"Frankfurt\(Main\)", "Frankfurt "),
-    (r"Offenbach\(Main\)", "Offenbach "),
-    (r"\(Hess\)", ""),
-    (r"\(Taunus\)", ""),
-    (r" Bahnhof", " Bhf"),
-    (r"Frankfurt\(M\) Flughafen(.+)", "F-Flugh.\g<1> \xb0"),
     (r"Gesundbrunnen", "Gesundbr."),
-    (r"München Ost", "Ostbahnhof"),
-    (r"München ", ""),
-    (r"Flughafen Terminal", "Flughafen/Airport \xb0"),
-    (r"Karlsplatz", "Karlsplatz (Stachus)"),
-    (r" \(Oberbay\)", ""),
     (r" Bhf", ""),
     (r"(?<=\S)\(", " ("),
 ]
 
 DESTINATION_REPLACEMENTS = [
-    (r"Frankfurt \(M\)", "Frankfurt "),
+    
 ]
 
 VIA_REPLACEMENTS = [
-    (r"Frankfurt-", "F-"),
-    (r"Frankfurt \(M\)", "F-"),
-    (r"Frankfurt am Main - ", "F-"),
-    (r"Frankfurt (?!am Main)", "F-"),
+    
 ]
 
 TRAIN_NUMBER_REPLACEMENTS = [
-    (r"VIA R", "R"),
+    
 ]
 
 
@@ -64,24 +50,36 @@ def get_info_short(train):
         return "Gleis {}".format(train.get('platform'))
     return ""
 
-def get_general_station_name(name):
+def get_general_station_name(name, repl_map = None):
+    if repl_map:
+        for regex, replacement in repl_map.get('general_station_replacements', []):
+            name = re.sub(regex, replacement, name)
     for regex, replacement in GENERAL_STATION_REPLACEMENTS:
         name = re.sub(regex, replacement, name)
     return name
 
-def get_destination_name(name):
-    name = get_general_station_name(name)
+def get_destination_name(name, repl_map = None):
+    name = get_general_station_name(name, repl_map)
+    if repl_map:
+        for regex, replacement in repl_map.get('destination_replacements', []):
+            name = re.sub(regex, replacement, name)
     for regex, replacement in DESTINATION_REPLACEMENTS:
         name = re.sub(regex, replacement, name)
     return name
 
-def get_via_name(name):
-    name = get_general_station_name(name)
+def get_via_name(name, repl_map = None):
+    name = get_general_station_name(name, repl_map)
+    if repl_map:
+        for regex, replacement in repl_map.get('via_replacements', []):
+            name = re.sub(regex, replacement, name)
     for regex, replacement in VIA_REPLACEMENTS:
         name = re.sub(regex, replacement, name)
     return name
 
-def get_train_number(line):
+def get_train_number(line, repl_map = None):
+    if repl_map:
+        for regex, replacement in repl_map.get('train_number_replacements', []):
+            line = re.sub(regex, replacement, line)
     for regex, replacement in TRAIN_NUMBER_REPLACEMENTS:
         line = re.sub(regex, replacement, line)
     return line

@@ -1,0 +1,12 @@
+{
+    "general_station_replacements": [
+        ["München Ost", "Ostbahnhof"],
+        ["München ", ""],
+        ["Flughafen Terminal", "Flughafen/Airport \u00b0"],
+        ["Karlsplatz", "Karlsplatz (Stachus)"],
+        [" \\(Oberbay\\)", ""]
+    ],
+    "destination_replacements": [],
+    "via_replacements": [],
+    "train_number_replacements": []
+}

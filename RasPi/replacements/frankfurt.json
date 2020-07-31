@@ -1,0 +1,22 @@
+{
+    "general_station_replacements": [
+        ["Frankfurt\\(Main\\)", "Frankfurt "],
+        ["Offenbach\\(Main\\)", "Offenbach "],
+        ["\\(Hess\\)", ""],
+        ["\\(Taunus\\)", ""],
+        [" Bahnhof", " Bhf"],
+        ["Frankfurt\\(M\\) Flughafen(.+)", "F-Flugh.\\g<1> \u00b0"]
+    ],
+    "destination_replacements": [
+        ["Frankfurt \\(M\\)", "Frankfurt "]
+    ],
+    "via_replacements": [
+        ["Frankfurt-", "F-"],
+        ["Frankfurt \\(M\\)", "F-"],
+        ["Frankfurt am Main - ", "F-"],
+        ["Frankfurt (?!am Main)", "F-"]
+    ],
+    "train_number_replacements": [
+        ["VIA R", "R"]
+    ]
+}

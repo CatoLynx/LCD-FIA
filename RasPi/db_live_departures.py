@@ -51,11 +51,13 @@ def main():
     parser.add_argument('--station', '-s', required=True, type=str)
     parser.add_argument('--train-types', '-tt', required=False, type=str)
     parser.add_argument('--platform', '-p', required=False, type=str, default="all")
+    parser.add_argument('--replacement-map', '-rm', required=False, type=str)
     args = parser.parse_args()
 
     fia = FIA("/dev/ttyAMA1", (3, 0), width=DISPLAY_WIDTH, height=DISPLAY_HEIGHT)
 
     if BL_AUX_IN_1_ENABLED:
+        time.sleep(3)
         gpio.setmode(gpio.BCM)
         gpio.setup(FIA.PIN_CTRL_AUX1_OUT, gpio.IN)
         gpio.add_event_detect(FIA.PIN_CTRL_AUX1_OUT, gpio.RISING, callback=lambda pin: on_bl_button_pressed(pin, fia))
@@ -79,6 +81,12 @@ def main():
         train_types = args.train_types.split(",")
     else:
         train_types = []
+    
+    if args.replacement_map:
+        with open(args.replacement_map, 'r') as f:
+            replacement_map = json.load(f)
+    else:
+        replacement_map = None
     
     last_data_hash = 0
     
@@ -178,22 +186,22 @@ def main():
                             'platform': str(train1.get('scheduledPlatform')),
                             'departure_1': train1.get('scheduledDeparture'),
                             'info': get_info_long(train1),
-                            'train_1': get_train_number(train1.get('train', "")),
-                            'via_1': " \xb4 ".join(map(get_via_name, train1.get('via', [])[:2])),
-                            'destination_1': get_destination_name(train1.get('destination', "")),
+                            'train_1': get_train_number(train1.get('train', ""), replacement_map),
+                            'via_1': " \xb4 ".join(map(lambda v: get_via_name(v, replacement_map), train1.get('via', [])[:2])),
+                            'destination_1': get_destination_name(train1.get('destination', ""), replacement_map),
                             'departure_2': train2.get('scheduledDeparture'),
-                            'train_2': get_train_number(train2.get('train', "")),
-                            'via_2': " \xb4 ".join(map(get_via_name, train2.get('via', [])[:2])),
-                            'destination_2': get_destination_name(train2.get('destination', "")),
+                            'train_2': get_train_number(train2.get('train', ""), replacement_map),
+                            'via_2': " \xb4 ".join(map(lambda v: get_via_name(v, replacement_map), train2.get('via', [])[:2])),
+                            'destination_2': get_destination_name(train2.get('destination', ""), replacement_map),
                             'next_train_1_departure': next_trains[0].get('scheduledDeparture'),
                             'next_train_1_delay': "+{}".format(delay_next_1) if delay_next_1 else "",
                             'next_train_2_departure': next_trains[1].get('scheduledDeparture'),
                             'next_train_2_delay': "+{}".format(delay_next_2) if delay_next_2 else "",
-                            'next_train_1_train': get_train_number(next_trains[0].get('train', "")),
-                            'next_train_2_train': get_train_number(next_trains[1].get('train', "")),
-                            'next_train_1_destination': get_destination_name(next_trains[0].get('destination', "")),
+                            'next_train_1_train': get_train_number(next_trains[0].get('train', ""), replacement_map),
+                            'next_train_2_train': get_train_number(next_trains[1].get('train', ""), replacement_map),
+                            'next_train_1_destination': get_destination_name(next_trains[0].get('destination', ""), replacement_map),
                             'next_train_1_info': get_info_short(next_trains[0]),
-                            'next_train_2_destination': get_destination_name(next_trains[1].get('destination', "")),
+                            'next_train_2_destination': get_destination_name(next_trains[1].get('destination', ""), replacement_map),
                             'next_train_2_info': get_info_short(next_trains[1])
                         }
                     }
@@ -231,20 +239,20 @@ def main():
                             'platform': str(train.get('scheduledPlatform')),
                             'departure': train.get('scheduledDeparture'),
                             'info': get_info_long(train),
-                            'train': get_train_number(train.get('train', "")),
+                            'train': get_train_number(train.get('train', ""), replacement_map),
                             'order_sections': "\x25\x26\x27\x28\x29\x2a\x2b" if order_sections else None,
                             'order_coaches': order_coaches,
-                            'via': " \xb4 ".join(map(get_via_name, train.get('via', [])[:2])),
-                            'destination': get_destination_name(train.get('destination', "")),
+                            'via': " \xb4 ".join(map(lambda v: get_via_name(v, replacement_map), train.get('via', [])[:2])),
+                            'destination': get_destination_name(train.get('destination', ""), replacement_map),
                             'next_train_1_departure': next_trains[0].get('scheduledDeparture'),
                             'next_train_1_delay': "+{}".format(delay_next_1) if delay_next_1 else "",
                             'next_train_2_departure': next_trains[1].get('scheduledDeparture'),
                             'next_train_2_delay': "+{}".format(delay_next_2) if delay_next_2 else "",
-                            'next_train_1_train': get_train_number(next_trains[0].get('train', "")),
-                            'next_train_2_train': get_train_number(next_trains[1].get('train', "")),
-                            'next_train_1_destination': get_destination_name(next_trains[0].get('destination', "")),
+                            'next_train_1_train': get_train_number(next_trains[0].get('train', ""), replacement_map),
+                            'next_train_2_train': get_train_number(next_trains[1].get('train', ""), replacement_map),
+                            'next_train_1_destination': get_destination_name(next_trains[0].get('destination', ""), replacement_map),
                             'next_train_1_info': get_info_short(next_trains[0]),
-                            'next_train_2_destination': get_destination_name(next_trains[1].get('destination', "")),
+                            'next_train_2_destination': get_destination_name(next_trains[1].get('destination', ""), replacement_map),
                             'next_train_2_info': get_info_short(next_trains[1])
                         }
                     }
