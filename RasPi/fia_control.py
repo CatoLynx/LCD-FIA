@@ -377,7 +377,7 @@ class FIA:
 
 
 class FIAEmulator(FIA):
-    def __init__(self, width = 480, height = 128, panel_width = 96, panel_height = 64, h_sep_height = 15, v_sep_width = 2, off_colour = (0, 0, 255), on_colour = (255, 255, 255), frame_colour = (0, 0, 50)):
+    def __init__(self, width = 480, height = 128, panel_width = 96, panel_height = 64, h_sep_height = 15, v_sep_width = 1, off_colour = (0, 0, 200), on_colour = (255, 255, 255), frame_colour = (0, 0, 50)):
         self.width = width
         self.height = height
         self.panel_width = panel_width
