@@ -1,12 +1,11 @@
 import argparse
 import datetime
 import math
-import spidev
 import sys
 import time
 from PIL import Image, ImageSequence
 
-from fia_control import FIA
+from fia_control import FIA, FIAEmulator
 
 from local_settings import *
 
@@ -29,10 +28,14 @@ def main():
     parser.add_argument('--interval', '-i', required=False, default=None, type=pos_nonzero_int, help="Interval between frames in ms (defaults to GIF's setting or one second)")
     parser.add_argument('--countdown', '-c', action='store_true', help="If set, do an interactive countdown before starting to help with manually syncing video and audio")
     parser.add_argument('--loop', '-l', action='store_true', help="If set, loop animation forever")
+    parser.add_argument('--emulate', '-e', action='store_true', help="Run in emulation mode")
     parser.add_argument('--help', action='help', help="Display this help message")
     args = parser.parse_args()
     
-    fia = FIA("/dev/ttyAMA1", (3, 0), width=DISPLAY_WIDTH, height=DISPLAY_HEIGHT)
+    if args.emulate:
+        fia = FIAEmulator(width=DISPLAY_WIDTH, height=DISPLAY_HEIGHT)
+    else:
+        fia = FIA("/dev/ttyAMA1", (3, 0), width=DISPLAY_WIDTH, height=DISPLAY_HEIGHT)
     
     print("Loading image...")
     img = Image.open(args.file)
@@ -110,6 +113,7 @@ def main():
                         repeat = False
     except KeyboardInterrupt:
         print("")
+        fia.exit()
 
 
 if __name__ == "__main__":

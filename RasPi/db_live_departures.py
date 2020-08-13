@@ -8,7 +8,7 @@ import traceback
 
 from deutschebahn import DBInfoscreen, DS100
 from layout_renderer import LayoutRenderer
-from fia_control import FIA
+from fia_control import FIA, FIAEmulator
 
 from db_common import *
 from local_settings import *
@@ -52,9 +52,13 @@ def main():
     parser.add_argument('--train-types', '-tt', required=False, type=str)
     parser.add_argument('--platform', '-p', required=False, type=str, default="all")
     parser.add_argument('--replacement-map', '-rm', required=False, type=str)
+    parser.add_argument('-e', '--emulate', action='store_true', help="Run in emulation mode")
     args = parser.parse_args()
-
-    fia = FIA("/dev/ttyAMA1", (3, 0), width=DISPLAY_WIDTH, height=DISPLAY_HEIGHT)
+    
+    if args.emulate:
+        fia = FIAEmulator(width=DISPLAY_WIDTH, height=DISPLAY_HEIGHT)
+    else:
+        fia = FIA("/dev/ttyAMA1", (3, 0), width=DISPLAY_WIDTH, height=DISPLAY_HEIGHT)
 
     if BL_AUX_IN_1_ENABLED:
         time.sleep(3)
@@ -270,6 +274,7 @@ def main():
             time.sleep(60 if random_station else 30)
         except KeyboardInterrupt:
             renderer.free_scroll_buffers()
+            fia.exit()
             break
         except:
             traceback.print_exc()

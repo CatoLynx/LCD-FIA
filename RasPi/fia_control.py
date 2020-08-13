@@ -1,8 +1,20 @@
 import serial
-import spidev
 import time
 
+# For real hardware, only available on RasPi
+try:
+    import spidev
+    _HAS_SPIDEV = True
+except ImportError:
+    _HAS_SPIDEV = False
+
 from PIL import Image, ImageSequence
+
+# For emulator
+import threading
+import numpy as np
+import tkinter as tk
+from PIL import ImageTk
 
 
 class FIAError(Exception):
@@ -65,6 +77,8 @@ class FIA:
     PIN_CTRL_AUX2_IN = 27
     
     def __init__(self, uart_port, spi_port, uart_baud = 115200, uart_timeout = 1.0, spi_clock = 5000000, width = 480, height = 128, panel_width = 96, panel_height = 64):
+        if not _HAS_SPIDEV:
+            raise RuntimeError("spidev module not installed. If you are running this on a PC, use FIAEmulator instead.")
         self.uart = serial.Serial(uart_port, baudrate=uart_baud, timeout=uart_timeout)
         self.spi = spidev.SpiDev()
         self.spi.open(*spi_port)
@@ -73,6 +87,9 @@ class FIA:
         self.height = height
         self.panel_width = panel_width
         self.panel_height = panel_height
+    
+    def exit(self):
+        pass
     
     def send_uart_command_raw(self, raw_command):
         # Just send a raw UART command
@@ -357,3 +374,120 @@ class FIA:
                 cur_frame += 1
             if cur_frame >= len(frames):
                 cur_frame = 0
+
+
+class FIAEmulator(FIA):
+    def __init__(self, width = 480, height = 128, panel_width = 96, panel_height = 64, h_sep_height = 15, v_sep_width = 2, off_colour = (0, 0, 255), on_colour = (255, 255, 255)):
+        self.width = width
+        self.height = height
+        self.panel_width = panel_width
+        self.panel_height = panel_height
+        self.h_sep_height = h_sep_height
+        self.v_sep_width = v_sep_width
+        self.off_colour = off_colour
+        self.on_colour = on_colour
+        
+        self.backlight_on = True
+        self.h_panels = width // panel_width
+        self.v_panels = height // panel_height
+        self.img_width = width + (self.h_panels - 1) * v_sep_width
+        self.img_height = height + (self.v_panels - 1) * h_sep_height
+        self.img = Image.new('L', (self.width, self.height), 'black')
+        self.disp_img = Image.new('RGB', (self.img_width, self.img_height), 'black')
+        self.tk_running = True
+        self.tk_img_updated = True
+        self.tk_thread = threading.Thread(target=self.tk_loop)
+        self.tk_thread.start()
+    
+    def exit(self):
+        self.tk_running = False
+        self.tk_thread.join()
+    
+    def _replace_colour(self, img, src, repl):
+        data = np.array(img)
+        r1, g1, b1 = src
+        r2, g2, b2 = repl
+        red, green, blue = data[:,:,0], data[:,:,1], data[:,:,2]
+        mask = (red == r1) & (green == g1) & (blue == b1)
+        data[:,:,:3][mask] = [r2, g2, b2]
+        return Image.fromarray(data)
+
+    def _make_disp_img(self, img):
+        if self.backlight_on:
+            on_colour = self.on_colour
+            off_colour = self.off_colour
+        else:
+            on_colour = tuple([0.2 * v for v in self.on_colour])
+            off_colour = tuple([0.2 * v for v in self.off_colour])
+        
+        ret = Image.new('RGB', (self.img_width, self.img_height), 'black')
+        for y_panel in range(self.v_panels):
+            for x_panel in range(self.h_panels):
+                src_x1 = x_panel * self.panel_width
+                src_y1 = y_panel * self.panel_height
+                src_x2 = src_x1 + self.panel_width
+                src_y2 = src_y1 + self.panel_height
+                dest_x1 = x_panel * (self.panel_width + self.v_sep_width)
+                dest_y1 = y_panel * (self.panel_height + self.h_sep_height)
+                panel = img.crop((src_x1, src_y1, src_x2, src_y2)).convert("RGB")
+                if off_colour != (0, 0, 0):
+                    panel = self._replace_colour(panel, (0, 0, 0), off_colour)
+                if on_colour != (255, 255, 255):
+                    panel = self._replace_colour(panel, (255, 255, 255), on_colour)
+                ret.paste(panel, (dest_x1, dest_y1))
+        return ret
+    
+    def tk_update(self):
+        self.disp_img = self._make_disp_img(self.img)
+        self.tk_img_updated = True
+    
+    def tk_loop(self):
+        def _on_close():
+            self.tk_running = False
+        
+        window = tk.Tk()
+        window.protocol("WM_DELETE_WINDOW", _on_close)
+        window.title("FIA Emulator")
+        window.call('wm', 'attributes', '.', '-topmost', '1')
+        window.resizable(False, False)
+        canvas = tk.Canvas(window, width=self.img_width, height=self.img_height)
+        canvas.pack()
+        tk_img = ImageTk.PhotoImage(self.disp_img)
+        canvas_img = canvas.create_image(0, 0, anchor='nw', image=tk_img)
+        while self.tk_running:
+            if self.tk_img_updated:
+                tk_img = ImageTk.PhotoImage(self.disp_img)
+                canvas.itemconfig(canvas_img, image=tk_img)
+                self.tk_img_updated = False
+            window.update_idletasks()
+            window.update()
+        window.destroy()
+    
+    def send_uart_command_raw(self, raw_command):
+        print("TX: " + raw_command)
+    
+    def read_uart_response(self):
+        return bytearray([0xFF] * 100)
+    
+    def set_backlight_state(self, state):
+        super().set_backlight_state(state)
+        self.backlight_on = state
+
+    def send_image(self, img, auto_fit = True):
+        if not isinstance(img, Image.Image):
+            img = Image.open(img)
+        
+        img = img.convert('L')
+        
+        if auto_fit:
+            width, height = img.size
+            if width > self.width and height > self.height:
+                img = img.crop((0, 0, self.width, self.height))
+            else:
+                img2 = Image.new('L', (self.width, self.height), 'black')
+                img2.paste(img, (0, 0))
+                img = img2
+        
+        fn = lambda x : 255 if x > 64 else 0
+        self.img = img.convert('L').point(fn, mode='1')
+        self.tk_update()
