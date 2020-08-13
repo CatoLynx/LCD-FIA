@@ -2,6 +2,7 @@ certifi==2019.11.28
 chardet==3.0.4
 deutschebahn==1.2.1
 idna==2.9
+numpy==1.19.1
 Pillow==7.2.0
 pyserial==3.4
 requests==2.23.0
