@@ -377,7 +377,7 @@ class FIA:
 
 
 class FIAEmulator(FIA):
-    def __init__(self, width = 480, height = 128, panel_width = 96, panel_height = 64, h_sep_height = 15, v_sep_width = 2, off_colour = (0, 0, 255), on_colour = (255, 255, 255)):
+    def __init__(self, width = 480, height = 128, panel_width = 96, panel_height = 64, h_sep_height = 15, v_sep_width = 2, off_colour = (0, 0, 255), on_colour = (255, 255, 255), frame_colour = (0, 0, 50)):
         self.width = width
         self.height = height
         self.panel_width = panel_width
@@ -386,6 +386,7 @@ class FIAEmulator(FIA):
         self.v_sep_width = v_sep_width
         self.off_colour = off_colour
         self.on_colour = on_colour
+        self.frame_colour = frame_colour
         
         self.backlight_on = True
         self.h_panels = width // panel_width
@@ -393,7 +394,7 @@ class FIAEmulator(FIA):
         self.img_width = width + (self.h_panels - 1) * v_sep_width
         self.img_height = height + (self.v_panels - 1) * h_sep_height
         self.img = Image.new('L', (self.width, self.height), 'black')
-        self.disp_img = Image.new('RGB', (self.img_width, self.img_height), 'black')
+        self.disp_img = Image.new('RGB', (self.img_width, self.img_height), self.frame_colour)
         self.tk_running = True
         self.tk_img_updated = True
         self.tk_thread = threading.Thread(target=self.tk_loop)
@@ -420,7 +421,7 @@ class FIAEmulator(FIA):
             on_colour = tuple([0.2 * v for v in self.on_colour])
             off_colour = tuple([0.2 * v for v in self.off_colour])
         
-        ret = Image.new('RGB', (self.img_width, self.img_height), 'black')
+        ret = Image.new('RGB', (self.img_width, self.img_height), self.frame_colour)
         for y_panel in range(self.v_panels):
             for x_panel in range(self.h_panels):
                 src_x1 = x_panel * self.panel_width
