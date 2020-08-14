@@ -465,7 +465,7 @@ class FIAEmulator(FIA):
         window.destroy()
     
     def send_uart_command_raw(self, raw_command):
-        print("TX: " + raw_command)
+        print("TX: " + str(raw_command))
     
     def read_uart_response(self):
         return bytearray([0xFF] * 100)
@@ -473,6 +473,12 @@ class FIAEmulator(FIA):
     def set_backlight_state(self, state):
         super().set_backlight_state(state)
         self.backlight_on = state
+    
+    def create_scroll_buffer(self, *args, **kwargs):
+        try:
+            super().create_scroll_buffer(*args, **kwargs)
+        except:
+            pass
 
     def send_image(self, img, auto_fit = True):
         if not isinstance(img, Image.Image):

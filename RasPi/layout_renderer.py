@@ -3,7 +3,7 @@ import json
 import math
 import os
 
-from fia_control import FIA, FIAError
+from fia_control import FIA, FIAEmulator, FIAError
 from PIL import Image, ImageOps, ImageDraw
 
 from local_settings import *
@@ -149,6 +149,9 @@ class LayoutRenderer:
             char_width = placeholder.get('char_width', None)
             
             scroll = placeholder.get('scroll', False)
+            if isinstance(self.fia, FIAEmulator):
+                # Scroll texts are not yet supported in the emulator
+                scroll = False
             only_scroll_if_wider = placeholder.get('only_scroll_if_wider', False)
             if scroll:
                 int_w = placeholder.get('internal_width')
