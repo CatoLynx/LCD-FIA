@@ -3,11 +3,23 @@
     "height": 128,
     "placeholders": [
         {
+            "name": "user_profile_pic",
+            "type": "image",
+            "x": 2,
+            "y": 2,
+            "width": 48,
+            "height": 48,
+            "pad_left": 0,
+            "pad_top": 0,
+            "inverted": false,
+            "default": "images/profile_pic.png"
+        },
+        {
             "name": "user_display_name",
             "type": "text",
-            "x": 70,
+            "x": 60,
             "y": 4,
-            "width": 286,
+            "width": 296,
             "height": 16,
             "pad_left": 0,
             "pad_top": 0,
@@ -21,21 +33,21 @@
         {
             "name": "user_username",
             "type": "text",
-            "x": 70,
-            "y": 22,
-            "width": 210,
+            "x": 60,
+            "y": 21,
+            "width": 250,
             "height": 16,
             "pad_left": 0,
             "pad_top": 0,
             "inverted": false,
-            "font": "10S_DBLCD_custom",
+            "font": "10_DBLCD_custom",
             "size": 0,
             "align": "left",
             "spacing": 1,
-            "default": "@WWWyWWWWWWWWWWW"
+            "default": "@WWWWWWWWWWWWWWW"
         },
         {
-            "name": "tweet_date",
+            "name": "tweet_timestamp",
             "type": "text",
             "x": 358,
             "y": 4,
@@ -51,20 +63,30 @@
             "default": "32.08.2054 24:60"
         },
         {
+            "name": "tweet_text_separator",
+            "type": "line",
+            "x": 60,
+            "y": 34,
+            "x2": 478,
+            "y2": 34,
+            "inverted": false,
+            "line_width": 1
+        },
+        {
             "name": "tweet_text",
-            "type": "text",
-            "x": 70,
-            "y": 44,
-            "width": 408,
-            "height": 82,
+            "type": "multiline_text",
+            "x": 60,
+            "y": 38,
+            "width": 418,
+            "height": 88,
             "pad_left": 0,
             "pad_top": 0,
             "inverted": false,
-            "font": "14_DBLCD",
+            "font": "10S_DBLCD",
             "size": 0,
             "align": "left",
             "spacing": 1,
-            "default": "This could be your tweet here!"
+            "default": "This is a multi-line display tweet thingmajig which should look somewhat acceptable on this display if i have done everything right! Also this is exactly 280 characters, I counted them all because I have nothing better to do, trust me! Why else would I program all of this huh? :D"
         }
     ]
 }

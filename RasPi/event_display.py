@@ -1,10 +1,11 @@
 import argparse
 import datetime
 import json
+import requests
 import time
 import tweepy
 
-from PIL import Image
+from PIL import Image, ImageDraw, ImageOps
 
 from layout_renderer import LayoutRenderer
 from fia_control import FIA, FIAEmulator
@@ -89,9 +90,9 @@ def twitter_app(api, fia, renderer, config):
         source_type = source.get('type')
         params = source.get('parameters', {})
         if source_type == 'search':
-            results = api.search(**params)
+            results = api.search(tweet_mode='extended', **params)
         elif source_type == 'user':
-            results = api.user_timeline(**params)
+            results = api.user_timeline(tweet_mode='extended', **params)
         else:
             results = []
         filters = source.get('filters', [])
@@ -100,7 +101,7 @@ def twitter_app(api, fia, renderer, config):
         tweets.extend(results)
 
     # Sort tweets
-    tweets = sorted(tweets, key=lambda t: t.created_at)
+    tweets = sorted(tweets, key=lambda t: t.created_at, reverse=True)
 
     # Deduplicate tweets
     unique_tweets = []
@@ -110,22 +111,40 @@ def twitter_app(api, fia, renderer, config):
 
     # Limit number of tweets
     tweets = unique_tweets[:num_tweets]
-
-    for i in range(loop_count):
-        for tweet in tweets:
-            # Display tweet
-            values = {
-                'placeholders': {
-                    'text': tweet.text,
-                    'timestamp': tweet.created_at.strftime("%d.%m.%Y %H:%M"),
-                    'username': tweet.user.screen_name
-                }
+    
+    # Prepare placeholder values for tweets
+    tweet_placeholders = []
+    size = (48, 48)
+    mask = Image.new('L', size, 0)
+    draw = ImageDraw.Draw(mask) 
+    draw.ellipse((0, 0, size[0]-1, size[1]-1), fill=255)
+    for tweet in tweets:
+        display_pic = Image.new('L', size, 0)
+        profile_pic = Image.open(requests.get(tweet.user.profile_image_url_https, stream=True).raw)
+        profile_pic = ImageOps.fit(profile_pic, mask.size, centering=(0.5, 0.5))
+        profile_pic.putalpha(mask)
+        display_pic.paste(profile_pic, mask)
+        
+        timestamp = tweet.created_at + datetime.timedelta(hours=2)
+        
+        tweet_placeholders.append({
+            'placeholders': {
+                'tweet_text': tweet.full_text,
+                'tweet_timestamp': timestamp.strftime("%d.%m.%Y %H:%M"),
+                'user_username': "@" + tweet.user.screen_name,
+                'user_display_name': tweet.user.name,
+                'user_profile_pic': display_pic
             }
+        })
+
+    # Display tweets
+    for i in range(loop_count):
+        for i, tweet in enumerate(tweets):
             if type(tweet_layout) is dict:
-                renderer.display(tweet_layout, values)
+                renderer.display(tweet_layout, tweet_placeholders[i])
             elif type(tweet_layout) is str:
                 with open(tweet_layout, 'r', encoding='utf-8') as f:
-                    renderer.display(json.load(f), values)
+                    renderer.display(json.load(f), tweet_placeholders[i])
             time.sleep(tweet_duration)
 
 

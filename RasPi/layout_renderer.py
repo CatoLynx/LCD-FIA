@@ -281,14 +281,18 @@ class LayoutRenderer:
         inverted = placeholder.get('inverted')
         default = placeholder.get('default')
         
-        if render_content and p_type == 'text':
+        if render_content and (p_type == 'text' or p_type == 'multiline_text'):
+            multiline = p_type == 'multiline_text'
             if not value:
                 return
             font = placeholder.get('font')
             size = placeholder.get('size')
             align = placeholder.get('align')
             spacing = placeholder.get('spacing', 0)
+            line_spacing = placeholder.get('line_spacing', 0)
             char_width = placeholder.get('char_width', None)
+            auto_wrap = placeholder.get('auto_wrap', True)
+            break_words = placeholder.get('break_words', True)
             
             scroll = placeholder.get('scroll', False)
             if isinstance(self.fia, FIAEmulator):
@@ -311,7 +315,10 @@ class LayoutRenderer:
                 # so we have to invert the inverting
                 if int_w is None:
                     # No internal width specified, use auto-crop
-                    txt = self.render_text(self.MAX_FIELD_WIDTH, height, pad_left, pad_top, font, size, align, not inverted, spacing, char_width, value)
+                    if multiline:
+                        txt = self.render_multiline_text(self.MAX_FIELD_WIDTH, height, pad_left, pad_top, font, size, align, not inverted, spacing, line_spacing, char_width, value, auto_wrap, break_words)
+                    else:
+                        txt = self.render_text(self.MAX_FIELD_WIDTH, height, pad_left, pad_top, font, size, align, not inverted, spacing, char_width, value)
                     if inverted:
                         tmp = ImageOps.invert(txt)
                         bbox = tmp.getbbox()
@@ -322,7 +329,10 @@ class LayoutRenderer:
                             int_w = max(required_width + post_clearance, width)
                             txt = txt.crop((0, 0, int_w, height))
                 else:
-                    txt = self.render_text(int_w, height, pad_left, pad_top, font, size, align, not inverted, spacing, char_width, value)
+                    if multiline:
+                        txt = self.render_multiline_text(int_w, height, pad_left, pad_top, font, size, align, not inverted, spacing, line_spacing, char_width, value, auto_wrap, break_words)
+                    else:
+                        txt = self.render_text(int_w, height, pad_left, pad_top, font, size, align, not inverted, spacing, char_width, value)
                 if scroll:
                     scroll_buffer = ScrollBuffer(self.fia, side, x, y, width, height, int_w, int_h, sc_off_x, sc_off_y, sc_sp_x, sc_sp_y, sc_st_x, sc_st_y)
                     scroll_buffer.create()
@@ -330,16 +340,22 @@ class LayoutRenderer:
                     scroll_buffer.send_img(txt)
                     self.scroll_buffers.append(scroll_buffer)
             if not scroll:
-                txt = self.render_text(width, height, pad_left, pad_top, font, size, align, inverted, spacing, char_width, value)
+                if multiline:
+                    txt = self.render_multiline_text(width, height, pad_left, pad_top, font, size, align, inverted, spacing, line_spacing, char_width, value, auto_wrap, break_words)
+                else:
+                    txt = self.render_text(width, height, pad_left, pad_top, font, size, align, inverted, spacing, char_width, value)
                 img.paste(txt, (x, y))
         elif render_content and p_type == 'image':
             if not value:
                 return
-            try:
-                value_img = Image.open(value)
-            except FileNotFoundError:
-                return
-            img.paste(self.render_image(width, height, pad_left, pad_top, inverted, value_img), (x, y))
+            if not isinstance(value, Image.Image):
+                try:
+                    value_img = Image.open(value)
+                except FileNotFoundError:
+                    return
+            else:
+                value_img = value
+            img.paste(self.render_image(width, height, pad_left, pad_top, not inverted, value_img), (x, y))
         elif p_type == 'line':
             x2 = placeholder.get('x2', 0)
             y2 = placeholder.get('y2', 0)
@@ -386,8 +402,6 @@ def main():
     parser.add_argument('--output', '-o', required=False, type=str)
     parser.add_argument('--layout', '-l', required=True, type=str)
     parser.add_argument('--font-dir', '-fd', required=True, type=str)
-    parser.add_argument('--width', '-w', required=True, type=int)
-    parser.add_argument('--height', '-h', required=True, type=int)
     parser.add_argument('--data', '-d', action='append', nargs=2, metavar=("key", "value"))
     parser.add_argument('--emulate', '-e', action='store_true', help="Run in emulation mode")
     parser.add_argument('--render-boxes', '-rb', action='store_true', help="Render the bounding boxes of the windows")

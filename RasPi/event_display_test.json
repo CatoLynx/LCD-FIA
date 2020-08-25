@@ -3,7 +3,7 @@
     {
       "type": "static",
       "config": {
-        "loop_count": 2,
+        "loop_count": 0,
         "pages": [
           {
             "type": "video",
@@ -29,18 +29,21 @@
       "config": {
         "loop_count": 2,
         "num_tweets": 5,
-        "tweet_duration": 1,
+        "tweet_duration": 10,
         "tweet_layout": "layouts/tweet_5x2.json",
         "tweet_sources": [
           {
             "type": "search",
             "parameters": {
-              "q": "gay",
+              "q": "vvoidcamp",
               "result_type": "recent"
             },
             "filters": [
               {
-                "type": "only_replies"
+                "type": "no_replies"
+              },
+              {
+                "type": "no_retweets"
               }
             ]
           },
@@ -55,12 +58,6 @@
               },
               {
                 "type": "no_retweets"
-              },
-              {
-                "type": "text_contains",
-                "parameters": {
-                  "text": "Person"
-                }
               }
             ]
           }
