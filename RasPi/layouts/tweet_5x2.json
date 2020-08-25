@@ -1,0 +1,70 @@
+{
+    "width": 480,
+    "height": 128,
+    "placeholders": [
+        {
+            "name": "user_display_name",
+            "type": "text",
+            "x": 70,
+            "y": 4,
+            "width": 286,
+            "height": 16,
+            "pad_left": 0,
+            "pad_top": 0,
+            "inverted": false,
+            "font": "12_DBLCD",
+            "size": 0,
+            "align": "left",
+            "spacing": 1,
+            "default": "User Display Name"
+        },
+        {
+            "name": "user_username",
+            "type": "text",
+            "x": 70,
+            "y": 22,
+            "width": 210,
+            "height": 16,
+            "pad_left": 0,
+            "pad_top": 0,
+            "inverted": false,
+            "font": "10S_DBLCD_custom",
+            "size": 0,
+            "align": "left",
+            "spacing": 1,
+            "default": "@WWWyWWWWWWWWWWW"
+        },
+        {
+            "name": "tweet_date",
+            "type": "text",
+            "x": 358,
+            "y": 4,
+            "width": 120,
+            "height": 16,
+            "pad_left": 0,
+            "pad_top": 0,
+            "inverted": false,
+            "font": "10S_DBLCD_custom",
+            "size": 0,
+            "align": "right",
+            "spacing": 1,
+            "default": "32.08.2054 24:60"
+        },
+        {
+            "name": "tweet_text",
+            "type": "text",
+            "x": 70,
+            "y": 44,
+            "width": 408,
+            "height": 82,
+            "pad_left": 0,
+            "pad_top": 0,
+            "inverted": false,
+            "font": "14_DBLCD",
+            "size": 0,
+            "align": "left",
+            "spacing": 1,
+            "default": "This could be your tweet here!"
+        }
+    ]
+}

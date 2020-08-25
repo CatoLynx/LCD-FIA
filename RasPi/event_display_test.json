@@ -1,0 +1,71 @@
+{
+  "apps": [
+    {
+      "type": "static",
+      "config": {
+        "loop_count": 2,
+        "pages": [
+          {
+            "type": "video",
+            "loop_count": 3,
+            "file": "videos/boop.gif"
+          },
+          {
+            "type": "image",
+            "duration": 1,
+            "file": "images/test_gol.png"
+          },
+          {
+            "type": "layout",
+            "duration": 3.5,
+            "layout": "layouts/departures_5x2_double.json",
+            "values": {}
+          }
+        ]
+      }
+    },
+    {
+      "type": "twitter",
+      "config": {
+        "loop_count": 2,
+        "num_tweets": 5,
+        "tweet_duration": 1,
+        "tweet_layout": "layouts/tweet_5x2.json",
+        "tweet_sources": [
+          {
+            "type": "search",
+            "parameters": {
+              "q": "gay",
+              "result_type": "recent"
+            },
+            "filters": [
+              {
+                "type": "only_replies"
+              }
+            ]
+          },
+          {
+            "type": "user",
+            "parameters": {
+              "screen_name": "Mezgrman"
+            },
+            "filters": [
+              {
+                "type": "no_replies"
+              },
+              {
+                "type": "no_retweets"
+              },
+              {
+                "type": "text_contains",
+                "parameters": {
+                  "text": "Person"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
