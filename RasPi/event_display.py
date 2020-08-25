@@ -28,7 +28,7 @@ def static_app(fia, renderer, config):
                 if type(layout) is dict:
                     renderer.display(layout, values)
                 elif type(layout) is str:
-                    with open(layout, 'r') as f:
+                    with open(layout, 'r', encoding='utf-8') as f:
                         renderer.display(json.load(f), values)
             elif page_type == 'image':
                 filename = page.get('file')
@@ -124,7 +124,7 @@ def twitter_app(api, fia, renderer, config):
             if type(tweet_layout) is dict:
                 renderer.display(tweet_layout, values)
             elif type(tweet_layout) is str:
-                with open(tweet_layout, 'r') as f:
+                with open(tweet_layout, 'r', encoding='utf-8') as f:
                     renderer.display(json.load(f), values)
             time.sleep(tweet_duration)
 
