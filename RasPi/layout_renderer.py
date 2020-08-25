@@ -77,8 +77,115 @@ class LayoutRenderer:
         self.img_fg = 0
         self.scroll_buffers = []
     
+    def get_font_dir(self, font, size):
+        return os.path.join(self.font_dir, font, "size_{}".format(size))
+    
     def get_char_filename(self, font, size, code):
-        return os.path.join(self.font_dir, font, "size_{}".format(size), "{:x}.bmp".format(code))
+        return os.path.join(self.get_font_dir(font, size), "{:x}.bmp".format(code))
+    
+    def get_char_code(self, char):
+        if char in self.CHAR_MAP:
+            code = self.CHAR_MAP[char]
+        else:
+            code = ord(char)
+        return code
+    
+    def get_font_metadata(self, font, size):
+        metadata_file = os.path.join(self.get_font_dir(font, size), "metadata.json")
+        with open(metadata_file, 'r') as f:
+            metadata = json.load(f)
+        return metadata
+    
+    def get_text_size(self, font, size, text, h_spacing, v_spacing):
+        metadata = self.get_font_metadata(font, size)
+        char_sizes = metadata['char_sizes']
+        width = 0
+        height = 0
+        lines = text.splitlines()
+        for line_idx, line in enumerate(lines):
+            max_height = 0
+            for char_idx, char in enumerate(line):
+                key = str(self.get_char_code(char))
+                if key in char_sizes:
+                    cw, ch = char_sizes[key]
+                    width += cw
+                    if ch > max_height:
+                        max_height = ch
+                if char_idx < len(line) - 1:
+                    width += h_spacing
+            height += max_height
+            if line_idx < len(lines) - 1:
+                height += v_spacing
+        return width, height
+    
+    def wrap_text(self, font, size, width, text, h_spacing, break_words):
+        line_width, line_height = self.get_text_size(font, size, text, h_spacing, 0)
+        if line_width <= width:
+            #print("all good!")
+            return [text]
+        
+        # We need to drop some words from the end
+        lines = []
+        words_dropped = 0
+        words = text.split(" ")
+        #print("=" * 40)
+        #print("words:", words)
+        while True:
+            words_dropped += 1
+            partial_line = " ".join(words[:-words_dropped])
+            #print("partial_line:", partial_line)
+            if not partial_line:
+                # We dropped all words, this means even just one word is already too wide.
+                # So we need to start breaking in the middle of a word if desired
+                if break_words:
+                    # Yep, break in the middle of a word
+                    chars_dropped = 0
+                    word = words[0]
+                    empty = False
+                    while True:
+                        chars_dropped += 1
+                        partial_word = word[:-chars_dropped]
+                        #print("partial_word:", partial_word)
+                        if not partial_word:
+                            # Even a single character is too wide. Just give up at this point.
+                            #print("char break fail")
+                            if not word:
+                                # The "word" is just an empty string
+                                empty = True
+                                partial_word = ""
+                                word_remainder = ""
+                            else:
+                                partial_word = word[0]
+                                word_remainder = word[1:]
+                            break
+                        line_width, line_height = self.get_text_size(font, size, partial_word, h_spacing, 0)
+                        if line_width <= width:
+                            word_remainder = word[-chars_dropped:]
+                            break
+                    lines.append(partial_word)
+                    if empty:
+                        remainder = word_remainder + " ".join(words[1:])
+                    else:
+                        remainder = word_remainder + " " + " ".join(words[1:])
+                    #print("recursing, remainder:", remainder)
+                    lines.extend(self.wrap_text(font, size, width, remainder, h_spacing, break_words))
+                    break
+                else:
+                    # Nope, just accept cutting off the word
+                    lines.append(words[0])
+                    remainder = " ".join(words[1:])
+                    #print("word break fail")
+                    #print("recursing, remainder:", remainder)
+                    lines.extend(self.wrap_text(font, size, width, remainder, h_spacing, break_words))
+                    break
+            line_width, line_height = self.get_text_size(font, size, partial_line, h_spacing, 0)
+            if line_width <= width:
+                remainder = " ".join(words[-words_dropped:])
+                #print("recursing, remainder:", remainder)
+                lines.append(partial_line)
+                lines.extend(self.wrap_text(font, size, width, remainder, h_spacing, break_words))
+                break
+        return lines
     
     def render_character(self, img, x, y, force_width, filename):
         try:
@@ -100,10 +207,7 @@ class LayoutRenderer:
         x = pad_left
         y = pad_top
         for char in text:
-            if char in self.CHAR_MAP:
-                code = self.CHAR_MAP[char]
-            else:
-                code = ord(char)
+            code = self.get_char_code(char)
             success, x, y = self.render_character(text_img, x, y, char_width, self.get_char_filename(font, size, code))
             x += spacing
         if align in ('center', 'right'):
@@ -117,6 +221,44 @@ class LayoutRenderer:
                 elif align == 'right':
                     x_offset = width - cropped_width
                 text_img.paste(cropped, (x_offset, 0))
+        if inverted:
+            text_img = ImageOps.invert(text_img)
+        return text_img
+
+    def render_multiline_text(self, width, height, pad_left, pad_top, font, size, align, inverted, h_spacing, v_spacing, char_width, text, auto_wrap = False, break_words = True):
+        metadata = self.get_font_metadata(font, size)
+        text_img = Image.new(self.img_mode, (width, height), color=self.img_bg)
+        lines = text.splitlines()
+        y = pad_top
+        for line in lines:
+            line_width, line_height = self.get_text_size(font, size, line, h_spacing, v_spacing)
+            
+            if auto_wrap:
+                render_lines = self.wrap_text(font, size, width, line, h_spacing, break_words)
+            else:
+                render_lines = [line]
+            
+            for render_line in render_lines:
+                render_line = render_line.strip()
+                if render_line == "":
+                    render_line = " "
+                r_line_width, r_line_height = self.get_text_size(font, size, render_line, h_spacing, v_spacing)
+                line_img = Image.new(self.img_mode, (r_line_width, r_line_height), color=self.img_bg)
+                x = 0
+                for char in render_line:
+                    code = self.get_char_code(char)
+                    success, x, y_out = self.render_character(line_img, x, 0, char_width, self.get_char_filename(font, size, code))
+                    x += h_spacing
+                if align == 'center':
+                    x_offset = (width - r_line_width) // 2
+                elif align == 'right':
+                    x_offset = width - r_line_width - 1
+                else:
+                    x_offset = 0
+                text_img.paste(line_img, (x_offset + pad_left, y))
+                y += r_line_height
+                y += v_spacing
+                x = pad_left
         if inverted:
             text_img = ImageOps.invert(text_img)
         return text_img
