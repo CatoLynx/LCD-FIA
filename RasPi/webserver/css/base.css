@@ -1,0 +1,46 @@
+body {
+    padding-bottom: 3rem;
+}
+
+.page-contents {
+    border: 2px solid #ddd;
+    font-family: Consolas, monospace;
+    font-size: 1.2em;
+    font-weight: bold;
+    line-height: 1;
+    outline: none;
+    overflow-x: scroll;
+    padding: .4em;
+    resize: none;
+    white-space: pre;
+}
+
+.text-page-duration {
+    border: 2px solid #ddd;
+    padding: 0 .2em;
+    width: 4em;
+}
+
+.fullwidth {
+    width: 100%;
+}
+
+.checkbox-list {
+    line-height: 1.2em;
+    list-style-type: none;
+    padding-left: 0;
+}
+
+.valign-helper-outer {
+    display: table;
+    height: 100%;
+}
+
+.valign-helper-inner {
+    display: table-cell;
+    vertical-align: middle;
+}
+
+.valign-helper-inner * {
+    margin: 0 auto;
+}

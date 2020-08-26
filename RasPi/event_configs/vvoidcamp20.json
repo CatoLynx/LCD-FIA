@@ -1,0 +1,64 @@
+{
+  "apps": [
+    {
+      "type": "static",
+      "config": {
+        "loop_count": 1,
+        "pages": [
+          {
+            "type": "image",
+            "duration": 5,
+            "file": "images/vvoidcamp20/logo.png"
+          }
+        ]
+      }
+    },
+    {
+      "type": "webserver",
+      "config": {
+        "loop_count": 1,
+        "data_source": "dynamic_data/webserver.json"
+      }
+    },
+    {
+      "type": "twitter",
+      "config": {
+        "loop_count": 1,
+        "num_tweets": 5,
+        "tweet_duration": 10,
+        "tweet_layout": "layouts/tweet_5x2.json",
+        "tweet_sources": [
+          {
+            "type": "search",
+            "parameters": {
+              "q": "vvoidcamp",
+              "result_type": "recent"
+            },
+            "filters": [
+              {
+                "type": "no_replies"
+              },
+              {
+                "type": "no_retweets"
+              }
+            ]
+          },
+          {
+            "type": "user",
+            "parameters": {
+              "screen_name": "vvoid_camp"
+            },
+            "filters": [
+              {
+                "type": "no_replies"
+              },
+              {
+                "type": "no_retweets"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

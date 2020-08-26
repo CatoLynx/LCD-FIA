@@ -49,10 +49,45 @@ def static_app(fia, renderer, config):
                 if filename:
                     display_image(fia, filename, width=DISPLAY_WIDTH, height=DISPLAY_HEIGHT, interval=interval, countdown=False, loop_count=loop_count, output=False)
 
-            if 'duration' in page:
-                time.sleep(page['duration'])
-            else:
-                time.sleep(1)
+            time.sleep(page.get('duration', 1))
+
+
+def webserver_app(fia, renderer, config):
+    loop_count = config.get('loop_count', 1)
+    data_source = config.get('data_source')
+    if data_source is None:
+        return
+    with open(data_source, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    
+    for i in range(loop_count):
+        for text_page in data.get('text_pages', []):
+            layout = {
+                'width': DISPLAY_WIDTH,
+                'height': DISPLAY_HEIGHT,
+                'placeholders': [{
+                    'name': "text_page_content",
+                    'type': "multiline_text",
+                    'x': 0,
+                    'y': 0,
+                    'width': DISPLAY_WIDTH,
+                    'height': DISPLAY_HEIGHT,
+                    'pad_left': 0,
+                    'pad_top': 0,
+                    'inverted': text_page.get('inverted', False),
+                    'font': text_page.get('font', "10S_DBLCD_custom"),
+                    'size': 0,
+                    'align': text_page.get('align', 'left'),
+                    'spacing': 1
+                }]
+            }
+            values = {
+                'placeholders': {
+                    'text_page_content': text_page.get('text', "")
+                }
+            }
+            renderer.display(layout, values)
+            time.sleep(text_page.get('duration', 1))
 
 
 def twitter_app(api, fia, renderer, config):
@@ -176,7 +211,9 @@ def main():
             app_config = app.get('config', {})
             if app_type == 'static':
                 static_app(fia, renderer, app_config)
-            if app_type == 'twitter':
+            elif app_type == 'webserver':
+                webserver_app(fia, renderer, app_config)
+            elif app_type == 'twitter':
                 twitter_app(twitter_api, fia, renderer, app_config)
 
 

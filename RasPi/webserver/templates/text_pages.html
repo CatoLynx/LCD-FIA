@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+{% block content %}
+<form id="text-pages-form" action="/text-pages" method="post">
+  {% for text_page in form.text_pages %}
+    <div id="text-page-{{ loop.index - 1 }}" class="text-page row p-2 border rounded bg-light mb-3">
+      <div class="col-md-10 col-sm-8">
+        <div class="row">
+          <div class="col-3">
+            {{ text_page.duration.label }}:
+            {{ text_page.duration }} s
+          </div>
+          <div class="col-2">
+            {{ text_page.align.label }}:
+            {{ text_page.align }}
+          </div>
+          <div class="col-3">
+            {{ text_page.font.label }}:
+            {{ text_page.font }}
+          </div>
+          <div class="col-3">
+            {{ text_page.inverted.label }}:
+            {{ text_page.inverted }}
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-12 text-right">
+            <button type="button" name="btn-move-up" disabled>🡩</button>
+            <button type="button" name="btn-move-down" disabled>🡫</button>
+            <button type="button" name="btn-del-content">Clear Contents</button>
+            <button type="button" name="btn-del-entry" disabled>Delete Page</button>
+          </div>
+        </div>
+        <div class="row p-2">
+          {{ text_page.text }}
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+  <button type="button" id="btn-add" class="mb-3">+ Add Page</button>
+  {{ form.submit }}
+  </div>
+</form>
+<script>
+function setTextPageId(el, id) {
+  // Set the ID of the selected text page and all its children
+  el.attr('id', "text-page-" + id);
+  
+  var durationField = el.find(".text-page-duration");
+  var durationLabel = el.find("label[for='" + durationField.attr('id') + "']");
+  durationField.attr('name', "text_pages-" + id + "-duration");
+  durationField.attr('id', "text_pages-" + id + "-duration");
+  durationLabel.attr('for', "text_pages-" + id + "-duration");
+  
+  var alignField = el.find(".text-page-align");
+  var alignLabel = el.find("label[for='" + alignField.attr('id') + "']");
+  alignField.attr('name', "text_pages-" + id + "-align");
+  alignField.attr('id', "text_pages-" + id + "-align");
+  alignLabel.attr('for', "text_pages-" + id + "-align");
+  
+  var fontField = el.find(".text-page-font");
+  var fontLabel = el.find("label[for='" + fontField.attr('id') + "']");
+  fontField.attr('name', "text_pages-" + id + "-font");
+  fontField.attr('id', "text_pages-" + id + "-font");
+  fontLabel.attr('for', "text_pages-" + id + "-font");
+  
+  var invertedField = el.find(".text-page-inverted");
+  var invertedLabel = el.find("label[for='" + invertedField.attr('id') + "']");
+  invertedField.attr('name', "text_pages-" + id + "-inverted");
+  invertedField.attr('id', "text_pages-" + id + "-inverted");
+  invertedLabel.attr('for', "text_pages-" + id + "-inverted");
+  
+  var textField = el.find(".text-page-content");
+  textField.attr('name', "text_pages-" + id + "-text");
+  textField.attr('id', "text_pages-" + id + "-text");
+}
+
+function clearTextPageValues(el) {
+  // Clear the input fields in the given text page element
+  var durationField = el.find(".text-page-duration");
+  durationField.val(10);
+  
+  var alignField = el.find(".text-page-align");
+  alignField.val("left");
+  
+  var fontField = el.find(".text-page-font");
+  fontField.val("10_DBLCD_custom");
+  
+  var invertedField = el.find(".text-page-inverted");
+  invertedField.prop("checked", false);
+  
+  var textField = el.find(".text-page-content");
+  textField.val("");
+}
+
+function setTextPageMoveButtonStates(el, moveUpState, moveDownState) {
+  // Set the "move up" and "move down" buttons enabled or disabled
+  var moveUpButton = el.find("button[name='btn-move-up']");
+  var moveDownButton = el.find("button[name='btn-move-down']");
+  moveUpButton.attr('disabled', !moveUpState);
+  moveDownButton.attr('disabled', !moveDownState);
+}
+
+function setTextPageDeleteEntryButtonState(el, state) {
+  // Set the "delete entry" button enabled or disabled
+  var delEntryButton = el.find("button[name='btn-del-entry']");
+  delEntryButton.attr('disabled', !state);
+}
+
+function updateButtonStates() {
+  // Enable or disable the buttons depending on the position of the text page
+  var TextPages = $(".text-page");
+  var numTextPages = TextPages.length;
+  for(var i = 0; i < numTextPages; i++) {
+    var TextPage = $(TextPages[i]);
+    if(numTextPages == 1) {
+      setTextPageMoveButtonStates(TextPage, false, false);
+    } else {
+      if(i == 0) {
+        setTextPageMoveButtonStates(TextPage, false, true);
+      } else if(i == numTextPages - 1) {
+        setTextPageMoveButtonStates(TextPage, true, false);
+      } else {
+        setTextPageMoveButtonStates(TextPage, true, true);
+      }
+    }
+    setTextPageDeleteEntryButtonState(TextPage, (numTextPages > 1));
+  }
+}
+
+function updateTextPageIds() {
+  // Re-assign the text page IDs
+  var TextPages = $(".text-page");
+  var numTextPages = TextPages.length;
+  for(var i = 0; i < numTextPages; i++) {
+    var TextPage = $(TextPages[i]);
+    setTextPageId(TextPage, i);
+  }
+}
+
+function addTextPage(e) {
+  var newText = $("#text-page-0").clone();
+  clearTextPageValues(newText);
+  
+  var btnMoveUp = newText.find("button[name='btn-move-up']");
+  btnMoveUp.click(moveTextPageUp);
+  
+  var btnMoveDown = newText.find("button[name='btn-move-down']");
+  btnMoveDown.click(moveTextPageDown);
+  
+  var btnDelContent = newText.find("button[name='btn-del-content']");
+  btnDelContent.click(clearText);
+  
+  var btnDelEntry = newText.find("button[name='btn-del-entry']");
+  btnDelEntry.click(removeTextPage);
+  
+  newText.insertBefore("#btn-add");
+  updateTextPageIds();
+  updateButtonStates();
+}
+
+function moveTextPageUp(e) {
+  var TextPage = $(e.target).closest(".text-page");
+  var prev = TextPage.prev();
+  TextPage.detach().insertBefore(prev);
+  updateTextPageIds();
+  updateButtonStates();
+}
+
+function moveTextPageDown(e) {
+  var TextPage = $(e.target).closest(".text-page");
+  var next = TextPage.next();
+  TextPage.detach().insertAfter(next);
+  updateTextPageIds();
+  updateButtonStates();
+}
+
+function clearText(e) {
+  $(e.target).closest(".text-page").find(".text-page-content").val("");
+}
+
+function removeTextPage(e) {
+  $(e.target).closest(".text-page").remove();
+  updateTextPageIds();
+  updateButtonStates();
+}
+
+$('textarea').on('keydown', replaceUmlautsOnKeyDown);
+$('#btn-add').click(addTextPage);
+$('button[name="btn-move-up"]').click(moveTextPageUp);
+$('button[name="btn-move-down"]').click(moveTextPageDown);
+$('button[name="btn-del-content"]').click(clearText);
+$('button[name="btn-del-entry"]').click(removeTextPage);
+$(document).ready(updateButtonStates);
+</script>
+{% endblock content %}

@@ -82,7 +82,7 @@
             "pad_left": 0,
             "pad_top": 0,
             "inverted": false,
-            "font": "10S_DBLCD",
+            "font": "10S_DBLCD_custom",
             "size": 0,
             "align": "left",
             "spacing": 1,
