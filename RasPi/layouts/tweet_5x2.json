@@ -66,9 +66,9 @@
             "name": "tweet_text_separator",
             "type": "line",
             "x": 60,
-            "y": 34,
+            "y": 35,
             "x2": 478,
-            "y2": 34,
+            "y2": 35,
             "inverted": false,
             "line_width": 1
         },
