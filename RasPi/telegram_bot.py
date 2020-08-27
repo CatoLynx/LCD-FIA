@@ -34,6 +34,7 @@ class FIABot:
         
         # Abusing function decorators to enable me to use the code in a class
         self.bot.message_handler(commands=['start'])(lambda msg: self.handle_start(msg))
+        self.bot.message_handler(commands=['clearall'])(lambda msg: self.handle_clearall(msg))
         self.bot.message_handler(content_types=['text'])(lambda msg: self.handle_text(msg))
     
     def run(self):
@@ -90,6 +91,14 @@ class FIABot:
     
     def handle_start(self, msg):
         self.bot.reply_to(msg, "Hi! Just send me a text message and I'll display it.")
+    
+    def handle_clearall(self, msg):
+        if msg.chat.id != self.admin_cid:
+            self.bot.reply_to(msg, f"I'm sorry, {msg.from_user.first_name}. I can't let you do that.")
+            return
+        with open(JSON_FILE, 'w', encoding='utf-8') as f:
+            json.dump({}, f)
+        self.bot.reply_to(msg, "All messages cleared.")
     
     def handle_text(self, msg):
         profile_pics = self.bot.get_user_profile_photos(msg.chat.id)
