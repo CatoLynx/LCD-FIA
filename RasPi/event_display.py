@@ -1,6 +1,7 @@
 import argparse
 import datetime
 import json
+import os
 import requests
 import time
 import tweepy
@@ -183,6 +184,59 @@ def twitter_app(api, fia, renderer, config):
             time.sleep(tweet_duration)
 
 
+def telegram_app(fia, renderer, config):
+    loop_count = config.get('loop_count', 1)
+    data_source = config.get('data_source')
+    profile_pics_dir = config.get('profile_pics_dir')
+    num_messages = config.get('num_messages', 10)
+    message_duration = config.get('message_duration', 5)
+    message_layout = config.get('message_layout', {})
+    
+    if data_source is None:
+        return
+    with open(data_source, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    
+    messages = sorted(data.items(), key=lambda item: item[1]['timestamp'])[:num_messages]
+    
+    # Prepare placeholder values for messages
+    message_placeholders = []
+    size = (48, 48)
+    mask = Image.new('L', size, 0)
+    draw = ImageDraw.Draw(mask) 
+    draw.ellipse((0, 0, size[0]-1, size[1]-1), fill=255)
+    for cid, message in messages:
+        try:
+            profile_pic = Image.open(os.path.join(profile_pics_dir, f"{cid}.png"))
+        except FileNotFoundError:
+            display_pic = None
+        else:
+            display_pic = Image.new('L', size, 0)
+            profile_pic = ImageOps.fit(profile_pic, mask.size, centering=(0.5, 0.5))
+            profile_pic.putalpha(mask)
+            display_pic.paste(profile_pic, mask)
+        
+        message_placeholders.append({
+            'placeholders': {
+                'message_text': message['text'],
+                'message_timestamp': datetime.datetime.fromtimestamp(message['timestamp']).strftime("%d.%m.%Y %H:%M"),
+                'user_username': "@" + message['username'] if message['username'] else None,
+                'user_display_name': message['display_name'],
+                'user_profile_pic': display_pic
+            }
+        })
+    
+    # Display messages
+    for i in range(loop_count):
+        for i, message in enumerate(messages):
+            if type(message_layout) is dict:
+                renderer.display(message_layout, message_placeholders[i])
+            elif type(message_layout) is str:
+                with open(message_layout, 'r', encoding='utf-8') as f:
+                    renderer.display(json.load(f), message_placeholders[i])
+            time.sleep(message_duration)
+
+
 def main():
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument('--config', '-c', required=True, type=str)
@@ -215,6 +269,8 @@ def main():
                 webserver_app(fia, renderer, app_config)
             elif app_type == 'twitter':
                 twitter_app(twitter_api, fia, renderer, app_config)
+            elif app_type == 'telegram':
+                telegram_app(fia, renderer, app_config)
 
 
 if __name__ == "__main__":

@@ -21,6 +21,17 @@
       }
     },
     {
+      "type": "telegram",
+      "config": {
+        "loop_count": 1,
+        "num_messages": 5,
+        "data_source": "dynamic_data/telegram.json",
+        "profile_pics_dir": "dynamic_data/telegram_profile_pics",
+        "message_duration": 5,
+        "message_layout": "layouts/telegram_text_5x2.json"
+      }
+    },
+    {
       "type": "twitter",
       "config": {
         "loop_count": 1,

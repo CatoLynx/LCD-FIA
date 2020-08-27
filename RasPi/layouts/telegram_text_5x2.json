@@ -47,7 +47,7 @@
             "default": "@WWWWWWWWWWWWWWW"
         },
         {
-            "name": "tweet_timestamp",
+            "name": "message_timestamp",
             "type": "text",
             "x": 358,
             "y": 4,
@@ -76,10 +76,10 @@
             "size": 0,
             "align": "right",
             "spacing": 1,
-            "default": "Twitter"
+            "default": "Telegram"
         },
         {
-            "name": "tweet_text_separator",
+            "name": "message_text_separator",
             "type": "line",
             "x": 60,
             "y": 35,
@@ -89,7 +89,7 @@
             "line_width": 1
         },
         {
-            "name": "tweet_text",
+            "name": "message_text",
             "type": "multiline_text",
             "x": 60,
             "y": 38,
