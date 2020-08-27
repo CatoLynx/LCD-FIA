@@ -281,6 +281,10 @@ class LayoutRenderer:
         inverted = placeholder.get('inverted')
         default = placeholder.get('default')
         
+        if p_type in ('line', 'rectangle'):
+            render_content = True
+            render_boxes = False
+        
         if render_content and (p_type == 'text' or p_type == 'multiline_text'):
             multiline = p_type == 'multiline_text'
             if not value:
