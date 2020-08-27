@@ -197,7 +197,7 @@ def telegram_app(fia, renderer, config):
     with open(data_source, 'r', encoding='utf-8') as f:
         data = json.load(f)
     
-    messages = sorted(data.items(), key=lambda item: item[1]['timestamp'])[:num_messages]
+    messages = sorted(data.items(), key=lambda item: item[1]['timestamp'], reverse=True)[:num_messages]
     
     # Prepare placeholder values for messages
     message_placeholders = []
