@@ -79,7 +79,8 @@ def webserver_app(fia, renderer, config):
                     'font': text_page.get('font', "10S_DBLCD_custom"),
                     'size': 0,
                     'align': text_page.get('align', 'left'),
-                    'spacing': 1
+                    'spacing': 1,
+                    'line_spacing': 1
                 }]
             }
             values = {
