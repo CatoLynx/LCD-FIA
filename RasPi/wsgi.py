@@ -9,8 +9,6 @@ from wtforms.widgets import TextArea
 from wtforms.widgets.html5 import NumberInput
 from wtforms.validators import NumberRange
 
-from pprint import pprint
-
 NODE_NAME = platform.node()
 
 app = Flask(__name__, template_folder="webserver/templates")
@@ -20,7 +18,7 @@ app.config['WTF_CSRF_ENABLED'] = False
 JSON_FILE = "dynamic_data/webserver.json"
 NUM_LINES = 10
 ALIGN_CHOICES = [('left', "Left"), ('center', "Center"), ('right', "Right")]
-FONT_CHOICES = [('7_DBLCD', "DBLCD 7px"), ('10_DBLCD_custom', "DBLCD 10px"), ('10S_DBLCD_custom', "DBLCD 10px bold"), ('12_DBLCD', "DBLCD 12px"), ('14_DBLCD', "DBLCD 14px"), ('14S_DBLCD', "DBLCD 14px bold")]
+FONT_CHOICES = [('7_DBLCD', "DBLCD 7px"), ('10S_DBLCD_custom', "DBLCD 10px"), ('10_DBLCD_custom', "DBLCD 10px bold"), ('12_DBLCD', "DBLCD 12px"), ('14S_DBLCD', "DBLCD 14px"), ('14_DBLCD', "DBLCD 14px bold")]
 
 
 class TextPageForm(FlaskForm):
