@@ -75,7 +75,8 @@ class FIABot:
                     return colored("Unknown Message Type", 'blue')
 
         for msg in messages:
-            filtered = self.filter_message_incoming(msg)
+            #filtered = self.filter_message_incoming(msg)
+            filtered = True
             self.logger.info("%(filtered)s[%(timestamp)s #%(mid)s %(firstname)s %(lastname)s @%(username)s #%(uid)s @ %(groupname)s #%(cid)s] %(text)s" % {
                 'filtered': colored("[FILTERED]", 'red') if not filtered else "",
                 'timestamp': datetime.datetime.fromtimestamp(msg.date).strftime("%d.%m.%Y %H:%M:%S"),
