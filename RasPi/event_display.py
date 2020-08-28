@@ -3,6 +3,7 @@ import datetime
 import json
 import os
 import requests
+import socket
 import time
 import traceback
 import tweepy
@@ -307,6 +308,8 @@ def main():
         fia = FIA("/dev/ttyAMA1", (3, 0), width=DISPLAY_WIDTH, height=DISPLAY_HEIGHT)
     
     renderer = LayoutRenderer(args.font_dir, fia=fia)
+    
+    socket.setdefaulttimeout(10.0)
 
     auth = tweepy.OAuthHandler(TWITTER_CONSUMER_KEY, TWITTER_CONSUMER_SECRET)
     auth.set_access_token(TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_TOKEN_SECRET)
