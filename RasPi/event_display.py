@@ -6,6 +6,9 @@ import requests
 import time
 import traceback
 import tweepy
+from mastodon import Mastodon
+from pyquery import PyQuery as pq
+from urllib.parse import urlparse
 
 from PIL import Image, ImageDraw, ImageOps
 
@@ -239,6 +242,71 @@ def telegram_app(fia, renderer, config):
             time.sleep(message_duration)
 
 
+def mastodon_app(mastodon, fia, renderer, config):
+    toot_sources = config.get('toot_sources', [])
+    loop_count = config.get('loop_count', 1)
+    num_toots = config.get('num_toots', 10)
+    toot_duration = config.get('toot_duration', 5)
+    toot_layout = config.get('toot_layout', {})
+
+    # Get toots
+    toots = []
+    for source in toot_sources:
+        source_type = source.get('type')
+        params = source.get('parameters', {})
+        if source_type == 'hashtag':
+            results = mastodon.timeline_hashtag(**params)
+        else:
+            results = []
+        toots.extend(results)
+
+    # Sort toots
+    toots = sorted(toots, key=lambda item: item['created_at'], reverse=True)
+
+    # Deduplicate toots
+    unique_toots = []
+    for t in toots:
+        if t.id not in [t.id for t in unique_toots]:
+            unique_toots.append(t)
+
+    # Limit number of toots
+    toots = unique_toots[:num_toots]
+
+    # Prepare placeholder values for toots
+    toot_placeholders = []
+    size = (48, 48)
+    mask = Image.new('L', size, 0)
+    draw = ImageDraw.Draw(mask)
+    draw.ellipse((0, 0, size[0]-1, size[1]-1), fill=255)
+    for toot in toots:
+        display_pic = Image.new('L', size, 0)
+        profile_pic = Image.open(requests.get(toot['account']['avatar'], stream=True).raw)
+        profile_pic = ImageOps.fit(profile_pic, mask.size, centering=(0.5, 0.5))
+        profile_pic.putalpha(mask)
+        display_pic.paste(profile_pic, mask)
+
+        toot_placeholders.append({
+            'placeholders': {
+                'toot_text': pq(toot['content']).text(),
+                'toot_timestamp': toot['created_at'].strftime("%d.%m.%Y %H:%M"),
+                'user_username': "@" + toot['account']['acct'],
+                'user_display_name': toot['account']['display_name'],
+                'user_profile_pic': display_pic,
+                'source': urlparse(toot['uri']).netloc
+            }
+        })
+
+    # Display toots
+    for i in range(loop_count):
+        for i, toot in enumerate(toots):
+            if type(toot_layout) is dict:
+                renderer.display(toot_layout, toot_placeholders[i])
+            elif type(toot_layout) is str:
+                with open(toot_layout, 'r', encoding='utf-8') as f:
+                    renderer.display(json.load(f), toot_placeholders[i])
+            time.sleep(toot_duration)
+
+
 def main():
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument('--config', '-c', required=True, type=str)
@@ -253,9 +321,11 @@ def main():
     
     renderer = LayoutRenderer(args.font_dir, fia=fia)
 
-    auth = tweepy.OAuthHandler(TWITTER_CONSUMER_KEY, TWITTER_CONSUMER_SECRET)
-    auth.set_access_token(TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_TOKEN_SECRET)
-    twitter_api = tweepy.API(auth)
+
+    mastodon = Mastodon(api_base_url=MASTODON_API_BASE_URL,
+                        client_id=MASTODON_CLIENT_ID,
+                        client_secret=MASTODON_CLIENT_SECRET,
+                        access_token=MASTODON_ACCESS_TOKEN)
 
     with open(args.config, 'r') as f:
         config = json.load(f)
@@ -270,12 +340,8 @@ def main():
                 app_config = app.get('config', {})
                 if app_type == 'static':
                     static_app(fia, renderer, app_config)
-                elif app_type == 'webserver':
-                    webserver_app(fia, renderer, app_config)
-                elif app_type == 'twitter':
-                    twitter_app(twitter_api, fia, renderer, app_config)
-                elif app_type == 'telegram':
-                    telegram_app(fia, renderer, app_config)
+                elif app_type == 'mastodon':
+                    mastodon_app(mastodon, fia, renderer, app_config)
             except:
                 traceback.print_exc()
                 print("Continuing")

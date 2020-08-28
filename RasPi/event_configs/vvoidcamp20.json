@@ -75,6 +75,29 @@
           }
         ]
       }
+    },
+    {
+      "type": "mastodon",
+      "config": {
+        "loop_count": 1,
+        "num_toots": 5,
+        "toot_duration": 10,
+        "toot_layout": "layouts/toot_5x2.json",
+        "toot_sources": [
+          {
+            "type": "hashtag",
+            "parameters": {
+              "hashtag": "vvoid"
+            }
+          },
+          {
+            "type": "hashtag",
+            "parameters": {
+              "hashtag": "vvoidcamp"
+            }
+          }
+        ]
+      }
     }
   ]
 }
