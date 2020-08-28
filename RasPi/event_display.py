@@ -239,6 +239,61 @@ def telegram_app(fia, renderer, config):
             time.sleep(message_duration)
 
 
+def weather_app(fia, renderer, config):
+    duration = config.get('duration', 10)
+    latitude = config.get('latitude')
+    longitude = config.get('longitude')
+    icon_dir = config.get('icon_dir')
+    weather_layout = config.get('weather_layout', {})
+    weather_data = requests.get(f"https://api.openweathermap.org/data/2.5/onecall?lat={latitude}&lon={longitude}&units=metric&appid={OWM_API_TOKEN}").json()
+    
+    weather_1h = weather_data['hourly'][1]
+    weather_3h = weather_data['hourly'][3]
+    weather_6h = weather_data['hourly'][6]
+    weather_1d = weather_data['daily'][1]
+    weather_2d = weather_data['daily'][2]
+    
+    print(weather_1h['pop'])
+    print(weather_3h['pop'])
+    print(weather_6h['pop'])
+    print(weather_1d['pop'])
+    print(weather_2d['pop'])
+    
+    weather_placeholders = {'placeholders': {
+        'time_1': "T+1h",
+        'time_2': "T+3h",
+        'time_3': "T+6h",
+        'time_4': "T+1d",
+        'time_5': "T+2d",
+        'icon_1': os.path.join(icon_dir, weather_1h['weather'][0]['icon'] + ".png"),
+        'icon_2': os.path.join(icon_dir, weather_3h['weather'][0]['icon'] + ".png"),
+        'icon_3': os.path.join(icon_dir, weather_6h['weather'][0]['icon'] + ".png"),
+        'icon_4': os.path.join(icon_dir, weather_1d['weather'][0]['icon'] + ".png"),
+        'icon_5': os.path.join(icon_dir, weather_2d['weather'][0]['icon'] + ".png"),
+        'temp_1': f"{weather_1h['temp']:.1f} °C",
+        'temp_2': f"{weather_3h['temp']:.1f} °C",
+        'temp_3': f"{weather_6h['temp']:.1f} °C",
+        'temp_4': f"{weather_1d['temp']['day']:.1f} °C",
+        'temp_5': f"{weather_2d['temp']['day']:.1f} °C",
+        'rain_prob_1': f"{weather_1h['pop']*100:.0f} %",
+        'rain_prob_2': f"{weather_3h['pop']*100:.0f} %",
+        'rain_prob_3': f"{weather_6h['pop']*100:.0f} %",
+        'rain_prob_4': f"{weather_1d['pop']*100:.0f} %",
+        'rain_prob_5': f"{weather_2d['pop']*100:.0f} %",
+        'wind_speed_1': f"{weather_1h['wind_speed']*3.6:.0f} km/h",
+        'wind_speed_2': f"{weather_3h['wind_speed']*3.6:.0f} km/h",
+        'wind_speed_3': f"{weather_6h['wind_speed']*3.6:.0f} km/h",
+        'wind_speed_4': f"{weather_1d['wind_speed']*3.6:.0f} km/h",
+        'wind_speed_5': f"{weather_2d['wind_speed']*3.6:.0f} km/h"
+    }}
+    if type(weather_layout) is dict:
+        renderer.display(weather_layout, weather_placeholders)
+    elif type(weather_layout) is str:
+        with open(weather_layout, 'r', encoding='utf-8') as f:
+            renderer.display(json.load(f), weather_placeholders)
+    time.sleep(duration)
+
+
 def main():
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument('--config', '-c', required=True, type=str)
@@ -276,6 +331,8 @@ def main():
                     twitter_app(twitter_api, fia, renderer, app_config)
                 elif app_type == 'telegram':
                     telegram_app(fia, renderer, app_config)
+                elif app_type == 'weather':
+                    weather_app(fia, renderer, app_config)
             except KeyboardInterrupt:
                 return
             except:
