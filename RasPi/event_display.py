@@ -276,6 +276,8 @@ def main():
                     twitter_app(twitter_api, fia, renderer, app_config)
                 elif app_type == 'telegram':
                     telegram_app(fia, renderer, app_config)
+            except KeyboardInterrupt:
+                return
             except:
                 traceback.print_exc()
                 print("Continuing")
