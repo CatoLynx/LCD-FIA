@@ -4,6 +4,7 @@ import json
 import os
 import requests
 import time
+import traceback
 import tweepy
 
 from PIL import Image, ImageDraw, ImageOps
@@ -259,19 +260,26 @@ def main():
     with open(args.config, 'r') as f:
         config = json.load(f)
     apps = config.get('apps', [])
+    
+    print("Starting")
 
     while True:
         for app in apps:
-            app_type = app.get('type')
-            app_config = app.get('config', {})
-            if app_type == 'static':
-                static_app(fia, renderer, app_config)
-            elif app_type == 'webserver':
-                webserver_app(fia, renderer, app_config)
-            elif app_type == 'twitter':
-                twitter_app(twitter_api, fia, renderer, app_config)
-            elif app_type == 'telegram':
-                telegram_app(fia, renderer, app_config)
+            try:
+                app_type = app.get('type')
+                app_config = app.get('config', {})
+                if app_type == 'static':
+                    static_app(fia, renderer, app_config)
+                elif app_type == 'webserver':
+                    webserver_app(fia, renderer, app_config)
+                elif app_type == 'twitter':
+                    twitter_app(twitter_api, fia, renderer, app_config)
+                elif app_type == 'telegram':
+                    telegram_app(fia, renderer, app_config)
+            except:
+                traceback.print_exc()
+                print("Continuing")
+                time.sleep(1)
 
 
 if __name__ == "__main__":
