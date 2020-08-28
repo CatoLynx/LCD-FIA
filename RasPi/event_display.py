@@ -321,12 +321,6 @@ def weather_app(fia, renderer, config):
     weather_1d = weather_data['daily'][1]
     weather_2d = weather_data['daily'][2]
     
-    print(weather_1h['pop'])
-    print(weather_3h['pop'])
-    print(weather_6h['pop'])
-    print(weather_1d['pop'])
-    print(weather_2d['pop'])
-    
     weather_placeholders = {'placeholders': {
         'time_1': "T+1h",
         'time_2': "T+3h",
