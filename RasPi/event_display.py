@@ -6,11 +6,11 @@ import requests
 import time
 import traceback
 import tweepy
+
+from PIL import Image, ImageDraw, ImageOps
 from mastodon import Mastodon
 from pyquery import PyQuery as pq
 from urllib.parse import urlparse
-
-from PIL import Image, ImageDraw, ImageOps
 
 from layout_renderer import LayoutRenderer
 from fia_control import FIA, FIAEmulator
@@ -320,7 +320,10 @@ def main():
         fia = FIA("/dev/ttyAMA1", (3, 0), width=DISPLAY_WIDTH, height=DISPLAY_HEIGHT)
     
     renderer = LayoutRenderer(args.font_dir, fia=fia)
-
+    
+    auth = tweepy.OAuthHandler(TWITTER_CONSUMER_KEY, TWITTER_CONSUMER_SECRET)
+    auth.set_access_token(TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_TOKEN_SECRET)
+    twitter_api = tweepy.API(auth)
 
     mastodon = Mastodon(api_base_url=MASTODON_API_BASE_URL,
                         client_id=MASTODON_CLIENT_ID,
@@ -340,6 +343,12 @@ def main():
                 app_config = app.get('config', {})
                 if app_type == 'static':
                     static_app(fia, renderer, app_config)
+                elif app_type == 'webserver':
+                    webserver_app(fia, renderer, app_config)
+                elif app_type == 'twitter':
+                    twitter_app(twitter_api, fia, renderer, app_config)
+                elif app_type == 'telegram':
+                    telegram_app(fia, renderer, app_config)
                 elif app_type == 'mastodon':
                     mastodon_app(mastodon, fia, renderer, app_config)
             except:
