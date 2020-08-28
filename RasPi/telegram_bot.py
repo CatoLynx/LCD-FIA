@@ -34,7 +34,8 @@ class FIABot:
         
         # Abusing function decorators to enable me to use the code in a class
         self.bot.message_handler(commands=['start'])(lambda msg: self.handle_start(msg))
-        self.bot.message_handler(commands=['clearall'])(lambda msg: self.handle_clearall(msg))
+        self.bot.message_handler(commands=['delete'])(lambda msg: self.handle_delete(msg))
+        self.bot.message_handler(commands=['deleteall'])(lambda msg: self.handle_deleteall(msg))
         self.bot.message_handler(content_types=['text'])(lambda msg: self.handle_text(msg))
     
     def run(self):
@@ -90,10 +91,31 @@ class FIABot:
                 'text': _readable(msg)
             })
     
+    def load_data(self):
+        try:
+            with open(JSON_FILE, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            data = {}
+        return data
+    
+    def save_data(self, data):
+        with open(JSON_FILE, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=2, sort_keys=True)
+    
     def handle_start(self, msg):
         self.bot.reply_to(msg, "Hi! Just send me a text message and I'll display it.")
     
-    def handle_clearall(self, msg):
+    def handle_delete(self, msg):
+        data = self.load_data()
+        if str(msg.chat.id) in data:
+            del data[str(msg.chat.id)]
+            self.save_data(data)
+            self.bot.reply_to(msg, "Your message has been deleted.")
+        else:
+            self.bot.reply_to(msg, "Looks like you didn't have a message saved in the first place!")
+    
+    def handle_deleteall(self, msg):
         if msg.chat.id != self.admin_cid:
             self.bot.reply_to(msg, f"I'm sorry, {msg.from_user.first_name}. I can't let you do that.")
             return
@@ -117,11 +139,7 @@ class FIABot:
                     img.close()
                     f.close()
         
-        try:
-            with open(JSON_FILE, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-        except (FileNotFoundError, json.JSONDecodeError):
-            data = {}
+        data = self.load_data()
         data.update({str(msg.chat.id): {
                 'type': 'text',
                 'text': msg.text,
@@ -129,9 +147,8 @@ class FIABot:
                 'username': msg.from_user.username,
                 'display_name': (msg.from_user.first_name or "") + " " + (msg.from_user.last_name or "")
             }})
-        with open(JSON_FILE, 'w', encoding='utf-8') as f:
-            json.dump(data, f, indent=2, sort_keys=True)
-        self.bot.reply_to(msg, "Your message has been saved!")
+        self.save_data(data)
+        self.bot.reply_to(msg, "Your message has been saved! Use /delete to remove it.")
 
 
 """
