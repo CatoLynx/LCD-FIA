@@ -6,6 +6,11 @@
         "loop_count": 1,
         "pages": [
           {
+            "type": "video",
+            "loop_count": 3,
+            "file": "videos/vvoidcamp20/logo_anim.gif"
+          },
+          {
             "type": "image",
             "duration": 5,
             "file": "images/vvoidcamp20/logo.png"
