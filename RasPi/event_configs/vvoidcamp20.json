@@ -36,6 +36,16 @@
       }
     },
     {
+      "type": "db_departures",
+      "config": {
+        "duration": 10,
+        "station": "NPA",
+        "display_station": "Passau Hbf",
+        "layout_single": "layouts/departures_5x2_single.json",
+        "layout_double": "layouts/departures_5x2_double.json"
+      }
+    },
+    {
       "type": "telegram",
       "config": {
         "loop_count": 1,

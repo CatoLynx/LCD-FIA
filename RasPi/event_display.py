@@ -1,10 +1,8 @@
 import argparse
 import datetime
-import errno
 import json
 import os
 import requests
-import signal
 import socket
 import time
 import traceback
@@ -14,36 +12,15 @@ from PIL import Image, ImageDraw, ImageOps
 from mastodon import Mastodon
 from pyquery import PyQuery as pq
 from urllib.parse import urlparse
-from functools import wraps
+from deutschebahn import DBInfoscreen, DS100
 
 from layout_renderer import LayoutRenderer
 from fia_control import FIA, FIAEmulator
 from display_image import display_image
+from utils import TimeoutError, timeout
+from db_live_departures import show_departures
 
 from local_settings import *
-
-
-class TimeoutError(Exception):
-    pass
-
-
-def timeout(seconds, error_message = os.strerror(errno.ETIME)):
-    def decorator(func):
-        def _handle_timeout(signum, frame):
-            raise TimeoutError(error_message)
-
-        def wrapper(*args, **kwargs):
-            signal.signal(signal.SIGALRM, _handle_timeout)
-            signal.alarm(seconds)
-            try:
-                result = func(*args, **kwargs)
-            finally:
-                signal.alarm(0)
-            return result
-
-        return wraps(func)(wrapper)
-
-    return decorator
 
 
 def static_app(fia, renderer, config):
@@ -430,6 +407,9 @@ def main():
                         client_id=MASTODON_CLIENT_ID,
                         client_secret=MASTODON_CLIENT_SECRET,
                         access_token=MASTODON_ACCESS_TOKEN)
+    
+    dbi = DBInfoscreen("dbf.finalrewind.org")
+    ds100 = DS100()
 
     with open(args.config, 'r') as f:
         config = json.load(f)
@@ -454,6 +434,8 @@ def main():
                     mastodon_app(mastodon, fia, renderer, app_config)
                 elif app_type == 'weather':
                     weather_app(fia, renderer, app_config)
+                elif app_type == 'db_departures':
+                    show_departures(dbi, ds100, fia, renderer, app_config)
             except KeyboardInterrupt:
                 return
             except:
