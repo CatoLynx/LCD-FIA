@@ -1,8 +1,10 @@
 import argparse
 import datetime
+import errno
 import json
 import os
 import requests
+import signal
 import socket
 import time
 import traceback
@@ -12,12 +14,36 @@ from PIL import Image, ImageDraw, ImageOps
 from mastodon import Mastodon
 from pyquery import PyQuery as pq
 from urllib.parse import urlparse
+from functools import wraps
 
 from layout_renderer import LayoutRenderer
 from fia_control import FIA, FIAEmulator
 from display_image import display_image
 
 from local_settings import *
+
+
+class TimeoutError(Exception):
+    pass
+
+
+def timeout(seconds, error_message = os.strerror(errno.ETIME)):
+    def decorator(func):
+        def _handle_timeout(signum, frame):
+            raise TimeoutError(error_message)
+
+        def wrapper(*args, **kwargs):
+            signal.signal(signal.SIGALRM, _handle_timeout)
+            signal.alarm(seconds)
+            try:
+                result = func(*args, **kwargs)
+            finally:
+                signal.alarm(0)
+            return result
+
+        return wraps(func)(wrapper)
+
+    return decorator
 
 
 def static_app(fia, renderer, config):
@@ -119,7 +145,52 @@ def twitter_app(api, fia, renderer, config):
             return filter(lambda t: params.get('text').lower() not in t.text.lower(), tweets)
         else:
             return tweets
-
+    
+    @timeout(10)
+    def _get_tweets():
+        tweets = []
+        for source in tweet_sources:
+            source_type = source.get('type')
+            params = source.get('parameters', {})
+            if source_type == 'search':
+                results = api.search(tweet_mode='extended', **params)
+            elif source_type == 'user':
+                results = api.user_timeline(tweet_mode='extended', **params)
+            else:
+                results = []
+            filters = source.get('filters', [])
+            for f in filters:
+                results = _apply_filter(f, results)
+            tweets.extend(results)
+        return tweets
+    
+    @timeout(10)
+    def _prepare_tweet_placeholders():
+        tweet_placeholders = []
+        size = (48, 48)
+        mask = Image.new('L', size, 0)
+        draw = ImageDraw.Draw(mask) 
+        draw.ellipse((0, 0, size[0]-1, size[1]-1), fill=255)
+        for tweet in tweets:
+            display_pic = Image.new('L', size, 0)
+            profile_pic = Image.open(requests.get(tweet.user.profile_image_url_https, stream=True).raw)
+            profile_pic = ImageOps.fit(profile_pic, mask.size, centering=(0.5, 0.5))
+            profile_pic.putalpha(mask)
+            display_pic.paste(profile_pic, mask)
+            
+            timestamp = tweet.created_at + datetime.timedelta(hours=2)
+            
+            tweet_placeholders.append({
+                'placeholders': {
+                    'tweet_text': tweet.full_text,
+                    'tweet_timestamp': timestamp.strftime("%d.%m.%Y %H:%M"),
+                    'user_username': "@" + tweet.user.screen_name,
+                    'user_display_name': tweet.user.name,
+                    'user_profile_pic': display_pic
+                }
+            })
+        return tweet_placeholders
+    
     tweet_sources = config.get('tweet_sources', [])
     loop_count = config.get('loop_count', 1)
     num_tweets = config.get('num_tweets', 10)
@@ -127,20 +198,7 @@ def twitter_app(api, fia, renderer, config):
     tweet_layout = config.get('tweet_layout', {})
 
     # Get tweets
-    tweets = []
-    for source in tweet_sources:
-        source_type = source.get('type')
-        params = source.get('parameters', {})
-        if source_type == 'search':
-            results = api.search(tweet_mode='extended', **params)
-        elif source_type == 'user':
-            results = api.user_timeline(tweet_mode='extended', **params)
-        else:
-            results = []
-        filters = source.get('filters', [])
-        for f in filters:
-            results = _apply_filter(f, results)
-        tweets.extend(results)
+    tweets = _get_tweets()
 
     # Sort tweets
     tweets = sorted(tweets, key=lambda t: t.created_at, reverse=True)
@@ -155,29 +213,7 @@ def twitter_app(api, fia, renderer, config):
     tweets = unique_tweets[:num_tweets]
     
     # Prepare placeholder values for tweets
-    tweet_placeholders = []
-    size = (48, 48)
-    mask = Image.new('L', size, 0)
-    draw = ImageDraw.Draw(mask) 
-    draw.ellipse((0, 0, size[0]-1, size[1]-1), fill=255)
-    for tweet in tweets:
-        display_pic = Image.new('L', size, 0)
-        profile_pic = Image.open(requests.get(tweet.user.profile_image_url_https, stream=True).raw)
-        profile_pic = ImageOps.fit(profile_pic, mask.size, centering=(0.5, 0.5))
-        profile_pic.putalpha(mask)
-        display_pic.paste(profile_pic, mask)
-        
-        timestamp = tweet.created_at + datetime.timedelta(hours=2)
-        
-        tweet_placeholders.append({
-            'placeholders': {
-                'tweet_text': tweet.full_text,
-                'tweet_timestamp': timestamp.strftime("%d.%m.%Y %H:%M"),
-                'user_username': "@" + tweet.user.screen_name,
-                'user_display_name': tweet.user.name,
-                'user_profile_pic': display_pic
-            }
-        })
+    tweet_placeholders = _prepare_tweet_placeholders()
 
     # Display tweets
     for i in range(loop_count):
@@ -244,6 +280,45 @@ def telegram_app(fia, renderer, config):
 
 
 def mastodon_app(mastodon, fia, renderer, config):
+    @timeout(10)
+    def _get_toots():
+        toots = []
+        for source in toot_sources:
+            source_type = source.get('type')
+            params = source.get('parameters', {})
+            if source_type == 'hashtag':
+                results = mastodon.timeline_hashtag(**params)
+            else:
+                results = []
+            toots.extend(results)
+        return toots
+    
+    @timeout(10)
+    def _prepare_toot_placeholders():
+        toot_placeholders = []
+        size = (48, 48)
+        mask = Image.new('L', size, 0)
+        draw = ImageDraw.Draw(mask)
+        draw.ellipse((0, 0, size[0]-1, size[1]-1), fill=255)
+        for toot in toots:
+            display_pic = Image.new('L', size, 0)
+            profile_pic = Image.open(requests.get(toot['account']['avatar'], stream=True).raw)
+            profile_pic = ImageOps.fit(profile_pic, mask.size, centering=(0.5, 0.5))
+            profile_pic.putalpha(mask)
+            display_pic.paste(profile_pic, mask)
+
+            toot_placeholders.append({
+                'placeholders': {
+                    'toot_text': pq(toot['content']).text(),
+                    'toot_timestamp': toot['created_at'].strftime("%d.%m.%Y %H:%M"),
+                    'user_username': "@" + toot['account']['acct'],
+                    'user_display_name': toot['account']['display_name'],
+                    'user_profile_pic': display_pic,
+                    'source': urlparse(toot['uri']).netloc
+                }
+            })
+        return toot_placeholders
+    
     toot_sources = config.get('toot_sources', [])
     loop_count = config.get('loop_count', 1)
     num_toots = config.get('num_toots', 10)
@@ -251,15 +326,7 @@ def mastodon_app(mastodon, fia, renderer, config):
     toot_layout = config.get('toot_layout', {})
 
     # Get toots
-    toots = []
-    for source in toot_sources:
-        source_type = source.get('type')
-        params = source.get('parameters', {})
-        if source_type == 'hashtag':
-            results = mastodon.timeline_hashtag(**params)
-        else:
-            results = []
-        toots.extend(results)
+    toots = _get_toots()
 
     # Sort toots
     toots = sorted(toots, key=lambda item: item['created_at'], reverse=True)
@@ -274,28 +341,7 @@ def mastodon_app(mastodon, fia, renderer, config):
     toots = unique_toots[:num_toots]
 
     # Prepare placeholder values for toots
-    toot_placeholders = []
-    size = (48, 48)
-    mask = Image.new('L', size, 0)
-    draw = ImageDraw.Draw(mask)
-    draw.ellipse((0, 0, size[0]-1, size[1]-1), fill=255)
-    for toot in toots:
-        display_pic = Image.new('L', size, 0)
-        profile_pic = Image.open(requests.get(toot['account']['avatar'], stream=True).raw)
-        profile_pic = ImageOps.fit(profile_pic, mask.size, centering=(0.5, 0.5))
-        profile_pic.putalpha(mask)
-        display_pic.paste(profile_pic, mask)
-
-        toot_placeholders.append({
-            'placeholders': {
-                'toot_text': pq(toot['content']).text(),
-                'toot_timestamp': toot['created_at'].strftime("%d.%m.%Y %H:%M"),
-                'user_username': "@" + toot['account']['acct'],
-                'user_display_name': toot['account']['display_name'],
-                'user_profile_pic': display_pic,
-                'source': urlparse(toot['uri']).netloc
-            }
-        })
+    toot_placeholders = _prepare_toot_placeholders()
 
     # Display toots
     for i in range(loop_count):
@@ -308,12 +354,16 @@ def mastodon_app(mastodon, fia, renderer, config):
             time.sleep(toot_duration)
 
 def weather_app(fia, renderer, config):
+    @timeout(10)
+    def _get_weather_data():
+        return requests.get(f"https://api.openweathermap.org/data/2.5/onecall?lat={latitude}&lon={longitude}&units=metric&appid={OWM_API_TOKEN}").json()
+    
     duration = config.get('duration', 10)
     latitude = config.get('latitude')
     longitude = config.get('longitude')
     icon_dir = config.get('icon_dir')
     weather_layout = config.get('weather_layout', {})
-    weather_data = requests.get(f"https://api.openweathermap.org/data/2.5/onecall?lat={latitude}&lon={longitude}&units=metric&appid={OWM_API_TOKEN}").json()
+    weather_data = _get_weather_data()
     
     weather_1h = weather_data['hourly'][1]
     weather_3h = weather_data['hourly'][3]
