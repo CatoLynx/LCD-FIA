@@ -28,7 +28,7 @@
     {
       "type": "weather",
       "config": {
-        "duration": 10,
+        "duration": 20,
         "latitude": 48.7727568,
         "longitude": 13.465266,
         "weather_layout": "layouts/weather_5x2.json",
