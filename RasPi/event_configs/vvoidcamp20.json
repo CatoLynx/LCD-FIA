@@ -12,8 +12,13 @@
           },
           {
             "type": "image",
-            "duration": 5,
+            "duration": 0,
             "file": "images/vvoidcamp20/logo.png"
+          },
+          {
+            "type": "video",
+            "loop_count": 1,
+            "file": "videos/intrinsicgravity.gif"
           }
         ]
       }
