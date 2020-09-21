@@ -435,7 +435,7 @@ def main():
                 elif app_type == 'weather':
                     weather_app(fia, renderer, app_config)
                 elif app_type == 'db_departures':
-                    show_departures(dbi, ds100, fia, renderer, app_config)
+                    show_departures(dbi, ds100, fia, renderer, app_config, auto_clear_scroll_buf=True)
             except KeyboardInterrupt:
                 return
             except:

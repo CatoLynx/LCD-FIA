@@ -48,7 +48,7 @@ def train_type_filter(train, train_types):
     return False
 
 
-def show_departures(dbi, ds100, fia, renderer, config):
+def show_departures(dbi, ds100, fia, renderer, config, auto_clear_scroll_buf = False):
     global LAST_DATA_HASH
     global COACH_ORDER_CACHE
     
@@ -260,6 +260,8 @@ def show_departures(dbi, ds100, fia, renderer, config):
         renderer.display(layout, data)
         LAST_DATA_HASH = data_hash
     time.sleep(duration)
+    if auto_clear_scroll_buf:
+        renderer.free_scroll_buffers()
 
 
 def main():
