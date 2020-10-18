@@ -84,6 +84,14 @@ def get_train_number(line, repl_map = None):
         line = re.sub(regex, replacement, line)
     return line
 
+def get_via(train, repl_map = None):
+    if repl_map and 'custom_routes' in repl_map:
+        custom_routes = repl_map.get('custom_routes', {})
+        key = "{} {}".format(get_train_number(train.get('train', ""), repl_map), get_destination_name(train.get('destination', ""), repl_map))
+        if key in custom_routes:
+            return custom_routes.get(key)
+    return map(lambda v: get_via_name(v, repl_map), train.get('via', [])[:2])
+
 def get_coach_order_strings(data):
     SEC_LBL_MAP = {
         "A": "\x25",
