@@ -6,6 +6,7 @@
         ["Flughafen Terminal", "Flughafen/Airport \u00b0"],
         ["Karlsplatz", "Karlsplatz (Stachus)"],
         [" \\(Oberbay\\)", ""],
+        ["\\(Oberbay\\)", ""],
         ["Neufahrn(b Freising)", "Neufahrn"]
     ],
     "destination_replacements": [],
@@ -15,7 +16,7 @@
         "S 1 Freising": ["Laim", "Oberschleißheim"],
         "S 1 Flughafen/Airport \u00b0": ["Laim", "Oberschleißheim"],
         "S 1 Neufahrn": ["Laim", "Oberschleißheim"],
-        "S 1 Leuchtenbergring": ["Karlsplatz (Stachus)", "Ostbanhof"],
+        "S 1 Leuchtenbergring": ["Karlsplatz (Stachus)", "Ostbahnhof"],
         "S 3 Mammendorf": ["Laim", "Pasing"],
         "S 3 Maisach": ["Laim", "Pasing"],
         "S 3 Holzkirchen": ["Ostbahnhof", "St.-Martin-Straße"],
@@ -45,7 +46,7 @@
         "S 8 Herrsching": ["Westkreuz", "Germering-Unterpf."],
         "S 8 Weßling": ["Westkreuz", "Germering-Unterpf."],
         "S 8 Germering-Unterpfaffenhofen": ["Westkreuz"],
-        "S 8 Flughafen/Airport \u00b0": ["Ostbanhof", "Leuchtenbergring"],
+        "S 8 Flughafen/Airport \u00b0": ["Ostbahnhof", "Leuchtenbergring"],
         "S 8 Leuchtenbergring": ["Ostbahnhof"]
     }
 }
