@@ -412,8 +412,6 @@ def main():
     parser.add_argument('--dont-render-content', '-drc', action='store_true', help="Don't render the content of the windows")
     args = parser.parse_args()
     
-    renderer = LayoutRenderer(args.font_dir)
-    
     with open(args.layout, 'r', encoding='utf-8') as f:
         layout = json.load(f)
     
@@ -421,16 +419,16 @@ def main():
         'placeholders': dict(args.data) if args.data is not None else {}
     }
     
-    img = renderer.render(layout, data, render_boxes=args.render_boxes, render_content=not args.dont_render_content)
-    
     if args.output:
+        img = renderer.render(layout, data, render_boxes=args.render_boxes, render_content=not args.dont_render_content)
         img.save(args.output)
     else:
         if args.emulate:
             fia = FIAEmulator(width=DISPLAY_WIDTH, height=DISPLAY_HEIGHT)
         else:
             fia = FIA("/dev/ttyAMA1", (3, 0), width=DISPLAY_WIDTH, height=DISPLAY_HEIGHT)
-        fia.send_image(img)
+        renderer = LayoutRenderer(args.font_dir, fia)
+        renderer.display(layout, data, render_boxes=args.render_boxes, render_content=not args.dont_render_content)
 
 
 if __name__ == "__main__":
