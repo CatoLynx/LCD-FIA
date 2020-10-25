@@ -4,4 +4,5 @@ videos/
 fia_test.py
 local_settings.py
 env_log*.csv
+event_configs/home.json
 
