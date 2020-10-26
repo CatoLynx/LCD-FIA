@@ -105,6 +105,16 @@ def show_departures(dbi, ds100, fia, renderer, config, auto_clear_scroll_buf = F
             break
     trains = sorted(trains, key=dbi.time_sort)
     
+    # Filter out double trains (same platform, time and destination)
+    uids = set()
+    new_trains = []
+    for train in trains:
+        uid = "{platform} {time} {destination}".format(platform=train.get('platform', ""), time=train.get('scheduledDeparture', ""), destination=train.get('destination', ""))
+        if uid not in uids:
+            uids.add(uid)
+            new_trains.append(train)
+    trains = new_trains
+    
     # If there are at least two trains, check if there are two trains that are coupled
     double_pair = None
     if len(trains) >= 2:
