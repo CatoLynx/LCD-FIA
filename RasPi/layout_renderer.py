@@ -420,6 +420,7 @@ def main():
     }
     
     if args.output:
+        renderer = LayoutRenderer(args.font_dir)
         img = renderer.render(layout, data, render_boxes=args.render_boxes, render_content=not args.dont_render_content)
         img.save(args.output)
     else:
