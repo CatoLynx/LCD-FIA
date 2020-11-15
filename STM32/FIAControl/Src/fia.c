@@ -48,8 +48,13 @@ void FIA_Init(void) {
 
     FIA_SetBitmapDestinationBuffer(SIDE_BOTH);
 
+#ifdef SPLASH_ENABLED
+    memcpy(FIA_staticBufferSideA, SPLASH, SPLASH_SIZE);
+    memcpy(FIA_staticBufferSideB, SPLASH, SPLASH_SIZE);
+#else
     memset(FIA_staticBufferSideA, 0xFF, BITMAP_BUF_SIZE);
     memset(FIA_staticBufferSideB, 0xFF, BITMAP_BUF_SIZE);
+#endif
 
     memset(FIA_maskBufferSideA, 0xFF, BITMAP_BUF_SIZE);
     memset(FIA_maskBufferSideB, 0xFF, BITMAP_BUF_SIZE);
