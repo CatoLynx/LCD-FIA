@@ -283,7 +283,8 @@ def main():
     parser.add_argument('--train-types', '-tt', required=False, type=str)
     parser.add_argument('--platform', '-p', required=False, type=str, default="all")
     parser.add_argument('--replacement-map', '-rm', required=False, type=str)
-    parser.add_argument('-e', '--emulate', action='store_true', help="Run in emulation mode")
+    parser.add_argument('--emulate', '-e', action='store_true', help="Run in emulation mode")
+    parser.add_argument('--dbi-host', required=False, type=str, default="dbf.finalrewind.org")
     args = parser.parse_args()
     
     if args.emulate:
@@ -300,7 +301,7 @@ def main():
     
     renderer = LayoutRenderer(args.font_dir, fia=fia)
     
-    dbi = DBInfoscreen("dbf.finalrewind.org")
+    dbi = DBInfoscreen(args.dbi_host)
     ds100 = DS100()
     
     with open(args.layout_single, 'r', encoding='utf-8') as f:
