@@ -23,6 +23,6 @@ six==1.15.0
 spidev==3.4
 termcolor==1.1.0
 tweepy==3.9.0
-urllib3==1.25.8
+urllib3==1.26.5
 Werkzeug==1.0.1
 WTForms==2.3.3
