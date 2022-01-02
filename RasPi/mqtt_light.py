@@ -53,7 +53,7 @@ def loop(client):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-d", "--delete", action='store_true', required=False, help="Delete sensor in Home Assistant")
+    parser.add_argument("-d", "--delete", action='store_true', required=False, help="Delete entity in Home Assistant")
     args = parser.parse_args()
     
     fia = FIA("/dev/ttyAMA1", (3, 0), width=DISPLAY_WIDTH, height=DISPLAY_HEIGHT)
@@ -82,7 +82,7 @@ def main():
             break
     
     if args.delete:
-        print("Deleting sensor")
+        print("Deleting entity")
         client.publish(DISCOVERY_TOPIC, "")
         return
     
