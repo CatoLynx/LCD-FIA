@@ -14,12 +14,18 @@ def on_message(fia, client, userdata, message):
         state = message.payload.decode("utf-8")
         if state == "ON":
             print("Turning on")
-            fia.set_backlight_state(True)
-            client.publish(STATE_TOPIC, "ON")
+            try:
+                fia.set_backlight_state(True)
+                client.publish(STATE_TOPIC, "ON")
+            except:
+                traceback.print_exc()
         elif state == "OFF":
             print("Turning off")
-            fia.set_backlight_state(False)
-            client.publish(STATE_TOPIC, "OFF")
+            try:
+                fia.set_backlight_state(False)
+                client.publish(STATE_TOPIC, "OFF")
+            except:
+                traceback.print_exc()
 
 
 def loop(client):
