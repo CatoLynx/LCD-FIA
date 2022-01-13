@@ -20,7 +20,7 @@ matplotlib==3.3.2
 numpy==1.19.1
 oauthlib==3.1.0
 paho-mqtt==1.6.1
-Pillow==8.4.0
+Pillow==9.0.0
 pyparsing==2.4.7
 pyquery==1.4.1
 pyserial==3.4
