@@ -9,6 +9,9 @@ from fia_control import FIA
 from local_settings import *
 
 
+def on_log(client, userdata, level, buff):
+    print(buff)
+
 def on_message(fia, client, userdata, message):
     if message.topic == COMMAND_TOPIC:
         state = message.payload.decode("utf-8")
@@ -60,7 +63,8 @@ def main():
     
     while True:
         try:
-            client = mqtt.Client()
+            client = mqtt.Client(client_id="funkwerk-fia")
+            client.on_log = on_log
             client.on_message = lambda *args, **kwargs: on_message(fia, *args, **kwargs)
             client.username_pw_set(username=MQTT_USER, password=MQTT_PASSWORD)
             client.connect(MQTT_BROKER, 1883, 60)
