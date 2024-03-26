@@ -15,7 +15,7 @@
 #define UART_START_BYTE 0xFF
 #define UART_CHECKSUM_START_VALUE 0x7F
 #define UART_MIN_COMMAND_LENGTH 4 // Start byte, length byte, command byte, checksum
-#define UART_MAX_PAYLOAD_LENGTH 255
+#define UART_MAX_PAYLOAD_LENGTH 27 // Protocol max is 255, but 25 is the parameter length for the longest command + 2 for command and checksum bytes
 
 #define UART_RX_RING_BUFFER_SIZE 256
 #define UART_DMA_WRITE_PTR ((UART_RX_RING_BUFFER_SIZE - CONTROL_UART.hdmarx->Instance->NDTR) & (UART_RX_RING_BUFFER_SIZE - 1))
