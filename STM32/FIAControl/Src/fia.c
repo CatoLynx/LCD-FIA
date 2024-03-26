@@ -903,7 +903,7 @@ uint8_t FIA_DeleteScrollBuffer(uint8_t id) {
     scrollBuffer->bufSize = 0;
     scrollBuffer->buf = NULL;
     FIA_UpdateNextFreeScrollBufferIndex();
-    FIA_scrollBufferCount--;
+    if (FIA_scrollBufferCount > 0) FIA_scrollBufferCount--;
 
     // Deletion of scroll buffers requires the dynamic buffers
     // to be cleared to clear out sticky scroll buffer residue
