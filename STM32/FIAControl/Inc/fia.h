@@ -136,47 +136,6 @@ typedef struct FIA_Scroll_Buffer {
     uint16_t scrollTickCntY;
 } FIA_Scroll_Buffer_t;
 
-// Variables for brightness sensors
-uint32_t adcRingBufferIndex;
-uint32_t adcValues[ADC_NUM_CHANNELS];
-uint32_t adcRingBuffer[ADC_NUM_CHANNELS * ADC_AVG_COUNT];
-uint32_t adcAverages[ADC_NUM_CHANNELS];
-uint16_t lcdContrast[2];
-uint8_t updateLCDContrastFlag;
-uint16_t envBrightness[2];
-int16_t backlightBaseBrightness[2];
-uint16_t backlightBrightness[2];
-uint8_t updateBacklightBrightnessFlag;
-uint8_t firstADCReadFlag;
-uint8_t firstADCAverageFlag;
-
-// Variables for receiving bitmap data from the high-level controller
-uint8_t FIA_staticBufferSideA[BITMAP_BUF_SIZE];
-uint8_t FIA_staticBufferSideB[BITMAP_BUF_SIZE];
-uint8_t FIA_dynamicBufferSideA[BITMAP_BUF_SIZE];
-uint8_t FIA_dynamicBufferSideB[BITMAP_BUF_SIZE];
-uint8_t FIA_maskBufferSideA[BITMAP_BUF_SIZE];
-uint8_t FIA_maskBufferSideB[BITMAP_BUF_SIZE];
-uint8_t FIA_displayBufferSideA[BITMAP_BUF_SIZE];
-uint8_t FIA_displayBufferSideB[BITMAP_BUF_SIZE];
-uint8_t FIA_bitmapRxActive;
-uint8_t* FIA_bitmapRxBuf;
-uint8_t FIA_bitmapRxBufID;
-uint8_t FIA_bitmapRxBoth;
-uint16_t FIA_bitmapRxLen;
-uint8_t FIA_maskEnabled;
-
-// Variables for scroll buffers
-FIA_Scroll_Buffer_t FIA_scrollBuffers[MAX_SCROLL_BUFFERS];
-uint8_t FIA_scrollBufferCount;
-int8_t FIA_nextFreeScrollBufferIndex;
-
-// Variables for temperature sensors
-double FIA_tempSensorValues[4];
-uint8_t FIA_circulationFansOverrideBLBallast;
-uint8_t FIA_circulationFansOverrideHeatersTemp;
-uint8_t FIA_circulationFansOverrideHeatersHumidity;
-
 // Function prototypes
 void FIA_Init(void);
 void FIA_InitI2CDACs(void);

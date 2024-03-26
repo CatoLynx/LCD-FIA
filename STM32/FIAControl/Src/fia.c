@@ -10,18 +10,54 @@
 #include <math.h>
 #include <string.h>
 
-int16_t backlightBaseBrightness[2] = {2048, 2048};
+
+// Variables for brightness sensors
+uint32_t adcRingBufferIndex = 0;
+uint32_t adcValues[ADC_NUM_CHANNELS] = {0};
+uint32_t adcRingBuffer[ADC_NUM_CHANNELS * ADC_AVG_COUNT] = {0};
+uint32_t adcAverages[ADC_NUM_CHANNELS] = {0};
 uint16_t lcdContrast[2] = {2048, 2048};
+uint8_t updateLCDContrastFlag = 0;
+uint16_t envBrightness[2] = {0, 0};
+int16_t backlightBaseBrightness[2] = {2048, 2048};
+uint16_t backlightBrightness[2] = {0, 0};
+uint8_t updateBacklightBrightnessFlag = 0;
 uint8_t firstADCReadFlag = 1;
+uint8_t firstADCAverageFlag = 0;
+
+// Variables for receiving bitmap data from the high-level controller
+uint8_t FIA_staticBufferSideA[BITMAP_BUF_SIZE] = {0};
+uint8_t FIA_staticBufferSideB[BITMAP_BUF_SIZE] = {0};
+uint8_t FIA_dynamicBufferSideA[BITMAP_BUF_SIZE] = {0};
+uint8_t FIA_dynamicBufferSideB[BITMAP_BUF_SIZE] = {0};
+uint8_t FIA_maskBufferSideA[BITMAP_BUF_SIZE] = {0};
+uint8_t FIA_maskBufferSideB[BITMAP_BUF_SIZE] = {0};
+uint8_t FIA_displayBufferSideA[BITMAP_BUF_SIZE] = {0};
+uint8_t FIA_displayBufferSideB[BITMAP_BUF_SIZE] = {0};
+uint8_t FIA_bitmapRxActive = 0;
+uint8_t* FIA_bitmapRxBuf = NULL;
+uint8_t FIA_bitmapRxBufID = SIDE_BOTH;
+uint8_t FIA_bitmapRxBoth = 0;
+uint16_t FIA_bitmapRxLen = 0;
+uint8_t FIA_maskEnabled = 0;
+
+// Variables for scroll buffers
+FIA_Scroll_Buffer_t FIA_scrollBuffers[MAX_SCROLL_BUFFERS] = {0};
+uint8_t FIA_scrollBufferCount = 0;
+int8_t FIA_nextFreeScrollBufferIndex = 0;
+
+// Variables for temperature sensors
+double FIA_tempSensorValues[4] = {0};
 uint8_t FIA_circulationFansOverrideBLBallast = 0;
 uint8_t FIA_circulationFansOverrideHeatersTemp = 0;
 uint8_t FIA_circulationFansOverrideHeatersHumidity = 0;
-uint8_t FIA_bitmapRxBufID = SIDE_BOTH;
 
 // Status variables for selected RAM per LCD bus
-uint8_t FIA_LCDcurrentRAM[NUM_LCD_BUSES];
+uint8_t FIA_LCDcurrentRAM[NUM_LCD_BUSES] = {0};
 
 FIA_Side_t oldDoorStatus = SIDE_NONE;
+
+extern uint8_t* lcdDataBuffers[4];
 
 void FIA_Init(void) {
     HAL_TIM_Base_Start(&DELAY_US_TIMER);

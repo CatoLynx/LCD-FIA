@@ -44,21 +44,6 @@
 // Size of the raw LCD data buffer (per LCD bus)
 #define LCD_BUF_SIZE (HALF_PANEL_NUM_LCD_BYTES * NUM_HALF_PANELS)
 
-// Array containing the logical order to address the backplanes in, according to datasheet
-const uint8_t BACKPLANES[NUM_BACKPLANES];
-
-// LCD Data buffers per LCD bus
-uint8_t lcdData1[LCD_BUF_SIZE];
-uint8_t lcdData2[LCD_BUF_SIZE];
-uint8_t lcdData3[LCD_BUF_SIZE];
-uint8_t lcdData4[LCD_BUF_SIZE];
-uint8_t* lcdDataBuffers[4];
-
-// Transmission status data per LCD bus
-uint8_t curTransmittedBackplaneIndex[NUM_LCD_BUSES];
-uint8_t transmitActive[NUM_LCD_BUSES];
-uint8_t* curLCDData[NUM_LCD_BUSES];
-
 // Function prototypes
 uint16_t LCD_ConvertBitmap(uint8_t* dst, uint8_t* src, uint8_t panelRowOffset, uint8_t ramSel);
 uint8_t LCD_IsTransmitActive(FIA_LCD_Bus_t row);

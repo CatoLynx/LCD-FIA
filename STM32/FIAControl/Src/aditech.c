@@ -4,8 +4,20 @@
 #include "spi.h"
 #include "util.h"
 
+// Array containing the logical order to address the backplanes in, according to datasheet
 const uint8_t BACKPLANES[NUM_BACKPLANES] = {COM2, COM1, COM3, COM0};
+
+// LCD Data buffers per LCD bus
+uint8_t lcdData1[LCD_BUF_SIZE] = {0};
+uint8_t lcdData2[LCD_BUF_SIZE] = {0};
+uint8_t lcdData3[LCD_BUF_SIZE] = {0};
+uint8_t lcdData4[LCD_BUF_SIZE] = {0};
 uint8_t* lcdDataBuffers[4] = {lcdData1, lcdData2, lcdData3, lcdData4};
+
+// Transmission status data per LCD bus
+uint8_t curTransmittedBackplaneIndex[NUM_LCD_BUSES] = {0};
+uint8_t transmitActive[NUM_LCD_BUSES] = {0};
+uint8_t* curLCDData[NUM_LCD_BUSES] = {0};
 
 uint8_t LCD_GetEndian(uint8_t backplane) {
     if (backplane == COM0 || backplane == COM1) {

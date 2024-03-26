@@ -20,13 +20,6 @@
 #define UART_RX_RING_BUFFER_SIZE 256
 #define UART_DMA_WRITE_PTR ((UART_RX_RING_BUFFER_SIZE - CONTROL_UART.hdmarx->Instance->NDTR) & (UART_RX_RING_BUFFER_SIZE - 1))
 
-// Global UART status variables
-uint8_t uartRxRingBuffer[UART_RX_RING_BUFFER_SIZE];
-uint8_t uartRxRingBufferReadPtr;
-uint8_t uartRxPayload[UART_MAX_PAYLOAD_LENGTH];
-uint8_t uartTxPayload[UART_MAX_PAYLOAD_LENGTH - 1];
-uint8_t uartTxBuffer[UART_MAX_PAYLOAD_LENGTH + 2];
-
 // Function prototypes
 void UART_StartRxRingBuffer(void);
 uint8_t UART_RxRingBufferEmpty(void);

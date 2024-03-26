@@ -2,6 +2,12 @@
 #include "fia.h"
 #include "i2c.h"
 
+// Global variables
+SHT21_Comm_State_t sht21CommState = IDLE;
+uint8_t sht21RxBuffer[3] = {0};
+double sht21CurTemperature = 0;
+double sht21CurHumidity = 0;
+
 void SHT21_StartTempConversion(void) {
     uint8_t data[1] = {SHT21_CMD_CONV_TEMP_NO_HOLD};
     HAL_I2C_Master_Transmit(&PERIPHERALS_I2C, I2C_ADDR_SENS_SHT21, data, 1, I2C_TIMEOUT);

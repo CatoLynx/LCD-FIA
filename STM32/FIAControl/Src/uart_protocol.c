@@ -2,6 +2,13 @@
 #include "fia.h"
 #include <string.h>
 
+// Global UART status variables
+uint8_t uartRxRingBuffer[UART_RX_RING_BUFFER_SIZE] = {0};
+uint8_t uartRxRingBufferReadPtr = 0;
+uint8_t uartRxPayload[UART_MAX_PAYLOAD_LENGTH] = {0};
+uint8_t uartTxPayload[UART_MAX_PAYLOAD_LENGTH - 1] = {0};
+uint8_t uartTxBuffer[UART_MAX_PAYLOAD_LENGTH + 2] = {0};
+
 void UART_StartRxRingBuffer(void) {
     HAL_UART_Receive_DMA(&CONTROL_UART, uartRxRingBuffer, UART_RX_RING_BUFFER_SIZE);
     uartRxRingBufferReadPtr = 0;

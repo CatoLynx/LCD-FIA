@@ -4,6 +4,9 @@
 #include "util.h"
 #include <string.h>
 
+extern uint8_t uartTxPayload[UART_MAX_PAYLOAD_LENGTH - 1];
+
+
 void UART_ProcessCommand(uint8_t command, uint8_t* parameters, uint8_t parameterLength) {
     uint8_t responseLength = 0;
 

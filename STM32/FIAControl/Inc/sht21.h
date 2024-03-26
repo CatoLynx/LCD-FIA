@@ -14,12 +14,6 @@
 // Typedefs
 typedef enum SHT21_Comm_State { IDLE, CONV_STARTED_TEMP, CONV_STARTED_RH, READOUT_STARTED_TEMP, READOUT_STARTED_RH } SHT21_Comm_State_t;
 
-// Global variables
-SHT21_Comm_State_t sht21CommState;
-uint8_t sht21RxBuffer[3];
-double sht21CurTemperature;
-double sht21CurHumidity;
-
 // Function prototypes
 void SHT21_StartTempConversion(void);
 void SHT21_StartHumidityConversion(void);
