@@ -84,6 +84,7 @@ _heapEntry_t* _heapCombineBlocks(_heapEntry_t* blockA, _heapEntry_t* blockB) {
 }
 
 void free(void* ptr) {
+    if (ptr == NULL) return;
     _heapEntry_t* block = (_heapEntry_t*)(ptr - offsetof(_heapEntry_t, data));
     block->flags = 0;
     while (block->prev && block->prev->flags == 0) {
