@@ -36,7 +36,7 @@ uint8_t FIA_displayBufferSideA[BITMAP_BUF_SIZE] = {0};
 uint8_t FIA_displayBufferSideB[BITMAP_BUF_SIZE] = {0};
 uint8_t FIA_bitmapRxActive = 0;
 uint8_t* FIA_bitmapRxBuf = NULL;
-uint8_t FIA_bitmapRxBufID = SIDE_BOTH;
+uint8_t FIA_bitmapRxBufID = SIDE_NONE;
 uint8_t FIA_bitmapRxBoth = 0;
 uint16_t FIA_bitmapRxLen = 0;
 uint8_t FIA_maskEnabled = 0;
@@ -1102,6 +1102,8 @@ void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef* hspi) {
         FIA_SetStatusLED(2, 0);
         FIA_SetStatusLED(1, 1);
         if (FIA_bitmapRxBoth) {
+            // Note: This only works if the data being sent matches the display size.
+            // Otherwise, it will just be ignored.
             if (FIA_bitmapRxBuf == FIA_staticBufferSideA) {
                 memcpy(FIA_staticBufferSideB, FIA_staticBufferSideA, BITMAP_BUF_SIZE);
             } else if (FIA_bitmapRxBuf == FIA_maskBufferSideA) {
