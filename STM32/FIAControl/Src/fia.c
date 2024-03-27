@@ -2,6 +2,7 @@
 #include "aditech.h"
 #include "ds18b20.h"
 #include "heap.h"
+#include "iwdg.h"
 #include "sht21.h"
 #include "spi.h"
 #include "stm32f4xx_hal.h"
@@ -114,6 +115,9 @@ void FIA_InitI2CDACs(void) {
 }
 
 void FIA_MainLoop(void) {
+    // Reset watchdog timer
+    HAL_IWDG_Refresh(&hiwdg);
+
     UART_HandleProtocol();
 
     if (updateLCDContrastFlag) {
