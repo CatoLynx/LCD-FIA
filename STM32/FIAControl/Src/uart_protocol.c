@@ -38,7 +38,8 @@ uint8_t UART_RxRingBufferRead(void) {
 uint8_t UART_RxRingBufferPeek(uint8_t offset) {
     uint8_t c = 0;
     if (uartRxRingBufferReadPtr != UART_DMA_WRITE_PTR) {
-        c = uartRxRingBuffer[uartRxRingBufferReadPtr + offset];
+        uint8_t idx = uartRxRingBufferReadPtr + offset;
+        c = uartRxRingBuffer[idx];
     }
     return c;
 }
