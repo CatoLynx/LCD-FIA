@@ -141,7 +141,6 @@ void FIA_MainLoop(void) {
 }
 
 void FIA_UpdateScrollPositions(void) {
-    // Called via timer interrupt.
     // Update all scroll positions as necessary
     for (uint8_t i = 0; i < MAX_SCROLL_BUFFERS; i++) {
         FIA_Scroll_Buffer_t* buf = &FIA_scrollBuffers[i];
