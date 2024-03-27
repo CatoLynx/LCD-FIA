@@ -783,7 +783,7 @@ uint8_t FIA_CreateScrollBuffer(FIA_Side_t side, uint16_t dispX, uint16_t dispY, 
     }
 
     size_t bufSize = intW * roundUp(intH, 8) / 8;
-    uint8_t* buf = malloc(bufSize);
+    uint8_t* buf = _malloc(bufSize);
     if (buf == NULL) {
         return SCROLL_BUFFER_ERR_MASK | SCROLL_BUFFER_ERR_SIZE;
     }
@@ -883,7 +883,7 @@ uint8_t FIA_DeleteScrollBuffer(uint8_t id) {
         // Prevent deletion of the currently active buffer
         return 0;
     }
-    free(scrollBuffer->buf);
+    _free(scrollBuffer->buf);
     scrollBuffer->occupied = 0;
     scrollBuffer->side = 0;
     scrollBuffer->dispX = 0;

@@ -1,6 +1,6 @@
 #include "heap.h"
 
-uint8_t _heap[HEAP_SIZE];
+uint8_t _heap[HEAP_SIZE] = {0};
 
 #define OFFSET(x) ((uint32_t)((uint8_t*)x) - (uint32_t)(_heapHead))
 
@@ -36,7 +36,7 @@ void heapInit() {
     _heapHead->firstBlock->size = HEAP_SIZE - sizeof(_heapHeader_t) - sizeof(_heapEntry_t);
 }
 
-void* malloc(size_t size) {
+void* _malloc(size_t size) {
     size_t blockSize = (size & ~0x3) + 4;
     _heapEntry_t* block = _heapHead->firstBlock;
     while (block &&
@@ -83,7 +83,7 @@ _heapEntry_t* _heapCombineBlocks(_heapEntry_t* blockA, _heapEntry_t* blockB) {
     return blockA;
 }
 
-void free(void* ptr) {
+void _free(void* ptr) {
     if (ptr == NULL) return;
     _heapEntry_t* block = (_heapEntry_t*)(ptr - offsetof(_heapEntry_t, data));
     block->flags = 0;
