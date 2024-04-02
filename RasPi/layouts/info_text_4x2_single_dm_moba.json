@@ -1,0 +1,22 @@
+{
+    "width": 384,
+    "height": 128,
+    "placeholders": [
+        {
+            "name": "text",
+            "type": "multiline_text",
+            "x": 0,
+            "y": 0,
+            "width": 384,
+            "height": 128,
+            "pad_left": 0,
+            "pad_top": 0,
+            "inverted": false,
+            "font": "10_DBLCD_custom",
+            "size": 0,
+            "align": "center",
+            "spacing": 1,
+            "default": ""
+        }
+    ]
+}
