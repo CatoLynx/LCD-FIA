@@ -3,7 +3,8 @@
     "cpu": "cortex-m4",
     "extra_flags": "-DSTM32F413xx",
     "f_cpu": "100000000L",
-    "mcu": "stm32f413vgt6"
+    "mcu": "stm32f413vgt6",
+    "product_line": "stm32f413vg"
   },
   "connectivity": [
     "can"
