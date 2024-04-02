@@ -342,7 +342,7 @@ class FIA:
         array, width, height = self.img_to_array(img)
         self.send_array(array)
     
-    def send_gif(self, img, auto_fit = True):
+    def send_gif(self, img, auto_fit = True, num_loops = -1):
         if not isinstance(img, Image.Image):
             img = Image.open(img)
         
@@ -366,7 +366,8 @@ class FIA:
         
         last_frame_time = 0
         cur_frame = 0
-        while True:
+        cur_loop = 0
+        while cur_loop < num_loops or num_loops == -1:
             now = time.time()
             if now - last_frame_time >= duration / 1000:
                 self.send_image(frames[cur_frame], auto_fit)
@@ -374,6 +375,7 @@ class FIA:
                 cur_frame += 1
             if cur_frame >= len(frames):
                 cur_frame = 0
+                cur_loop += 1
 
 
 class FIAEmulator(FIA):
