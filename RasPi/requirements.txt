@@ -37,5 +37,5 @@ spidev==3.4
 termcolor==1.1.0
 tweepy==3.9.0
 urllib3==1.26.7
-Werkzeug==1.0.1
+Werkzeug==2.2.3
 WTForms==2.3.3
