@@ -8,7 +8,7 @@ from fia_control import FIA
 
 
 def main():
-    fia = FIA("/dev/ttyAMA1", (3, 0), width=480, height=128)
+    fia = FIA("/dev/ttyAMA1", (3, 0), width=384, height=128)
     renderer = LayoutRenderer("fonts", fia=fia)
     
     with open("layouts/departures_4x2_single_dm_moba.json", 'r') as f:
@@ -24,6 +24,10 @@ def main():
 
     while True:
         try:
+            print("Resetting")
+            fia.mcu_reset()
+            time.sleep(3)
+
             print("Showing train-style info page (German)")
             data = {
             'placeholders': {
@@ -58,14 +62,14 @@ def main():
             renderer.display(layout_train, data)
             time.sleep(10)
             
-            print("Showing animation")
-            renderer.free_scroll_buffers()
-            fia.send_gif("images/dm_moba_fia_anim.gif", num_loops=1) # ~5 seconds
+            #print("Showing animation")
+            #renderer.free_scroll_buffers()
+            #fia.send_gif("images/dm_moba_fia_anim.gif", num_loops=1) # ~5 seconds
             
             print("Showing info text (German)")
             data = {
             'placeholders': {
-                    'text': "Liebe Besucher*innen,\n\naufgrund von Wartungsarbeiten müssen die Vorführungen der Modellbahn derzeit leider eine Pause einlegen.\nAb dem 29.04.2024 ist die Modellbahn wieder wie gewohnt für Sie da.\n\nWir bitten um Ihr Verständnis.\nIhr Modellbahnteam"
+                    'text': "Liebe Besucher:innen,\n\naufgrund von Wartungsarbeiten müssen die Vorführungen der Modellbahn derzeit leider eine Pause einlegen.\nAb dem 29.04.2024 ist die Modellbahn wieder wie gewohnt für Sie da.\n\nWir bitten um Ihr Verständnis.\nIhr Modellbahnteam"
                 }
             }
             renderer.free_scroll_buffers()
@@ -82,11 +86,11 @@ def main():
             renderer.display(layout_info, data)
             time.sleep(10)
             
-            print("Showing animation")
-            renderer.free_scroll_buffers()
-            fia.send_gif("images/dm_moba_fia_anim.gif", num_loops=1) # ~5 seconds
+            #print("Showing animation")
+            #renderer.free_scroll_buffers()
+            #fia.send_gif("images/dm_moba_fia_anim.gif", num_loops=1) # ~5 seconds
         except KeyboardInterrupt:
-            return
+            raise
         except:
             traceback.print_exc()
             print("Continuing in 10 seconds")
@@ -94,4 +98,11 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    while True:
+        try:
+            main()
+        except KeyboardInterrupt:
+            raise
+        except:
+            traceback.print_exc()
+            time.sleep(10)
