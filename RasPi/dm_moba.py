@@ -33,12 +33,10 @@ def main():
             'placeholders': {
                     'departure': "12:00",
                     'train': "ICE 705",
-                    'info': "Fahrt fällt heute aus              +++",
                     'via': "Wernmünden \xb4 Thalmühle \xb4 Erlenbach",
                     'destination': "Modelleisenbahn",
                     'next_train_1_departure': "14:00",
                     'next_train_1_destination': "Modelleisenbahn",
-                    'next_train_1_info': "fällt aus"
                 }
             }
             renderer.free_scroll_buffers()
@@ -50,12 +48,10 @@ def main():
             'placeholders': {
                     'departure': "12:00",
                     'train': "ICE 705",
-                    'info': "Today cancelled                   +++",
                     'via': "Wernmünden \xb4 Thalmühle \xb4 Erlenbach",
                     'destination': "Model railway",
                     'next_train_1_departure': "14:00",
                     'next_train_1_destination': "Model railway",
-                    'next_train_1_info': "cancelled"
                 }
             }
             renderer.free_scroll_buffers()
@@ -66,25 +62,25 @@ def main():
             #renderer.free_scroll_buffers()
             #fia.send_gif("images/dm_moba_fia_anim.gif", num_loops=1) # ~5 seconds
             
-            print("Showing info text (German)")
-            data = {
-            'placeholders': {
-                    'text': "Liebe Besucher:innen,\n\naufgrund von Wartungsarbeiten müssen die Vorführungen der Modellbahn derzeit leider eine Pause einlegen.\nAb dem 29.04.2024 ist die Modellbahn wieder wie gewohnt für Sie da.\n\nWir bitten um Ihr Verständnis.\nIhr Modellbahnteam"
-                }
-            }
-            renderer.free_scroll_buffers()
-            renderer.display(layout_info, data)
-            time.sleep(10)
+            #print("Showing info text (German)")
+            #data = {
+            #'placeholders': {
+            #        'text': "Liebe Besucher:innen,\n\naufgrund von Wartungsarbeiten müssen die Vorführungen der Modellbahn derzeit leider eine Pause einlegen.\nAb dem 29.04.2024 ist die Modellbahn wieder wie gewohnt für Sie da.\n\nWir bitten um Ihr Verständnis.\nIhr Modellbahnteam"
+            #    }
+            #}
+            #renderer.free_scroll_buffers()
+            #renderer.display(layout_info, data)
+            #time.sleep(10)
             
-            print("Showing info text (English)")
-            data = {
-            'placeholders': {
-                    'text': "Dear Visitors,\n\ndue to construction work, the model railway is currently out of service.\n\nThe demonstrations will be back as usual from 29/04/2024.\n\nWe apologise for the inconvenience.\nThe model railway team."
-                }
-            }
-            renderer.free_scroll_buffers()
-            renderer.display(layout_info, data)
-            time.sleep(10)
+            #print("Showing info text (English)")
+            #data = {
+            #'placeholders': {
+            #        'text': "Dear Visitors,\n\ndue to construction work, the model railway is currently out of service.\n\nThe demonstrations will be back as usual from 29/04/2024.\n\nWe apologise for the inconvenience.\nThe model railway team."
+            #    }
+            #}
+            #renderer.free_scroll_buffers()
+            #renderer.display(layout_info, data)
+            #time.sleep(10)
             
             #print("Showing animation")
             #renderer.free_scroll_buffers()
